@@ -23,6 +23,26 @@ export function Hero() {
   const [generatedCurriculum, setGeneratedCurriculum] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<"code" | "curriculum">("curriculum");
+  const supriseBuilds: string[] = [
+    "Build a pomodoro timer in the terminal using Python",
+    "Write a python script to convert simple Markdown to HTML",
+    "Make a multiple-choice quiz game in Python",
+    "Detect duplicate files in a directory using hash comparison in Python"
+  ]
+  const supriseCurriculums: string[] = [
+    "I want to learn how to build a command-line Pomodoro timer wioth Python",
+    "I want to understand object-oriented programming with Python from scratch",
+    "I want to learn how to handle and visualise data with pandas and matplotlib",
+    "I want to master error handling and debugging techniques in Python"
+  ]
+
+  const handleSupriseClick = () => {
+    if (mode == "code") {
+      setPrompt(supriseBuilds[Math.floor(Math.random() * supriseBuilds.length)]);
+    } else {
+      setPrompt(supriseCurriculums[Math.floor(Math.random() * supriseBuilds.length)]);
+    }
+  }
 
   useEffect(() => {
     setIsVisible(true);
@@ -246,6 +266,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
               <Button
                 variant="ghost"
                 className="text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2 mx-auto"
+                onClick={handleSupriseClick}
               >
                 <Sparkles className="w-4 h-4" />
                 Surprise me
