@@ -183,7 +183,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
 
         {/* Headline */}
         <div
-          className={`transform transition-all duration-1000 delay-200  mt-28 ${
+          className={`transform transition-all duration-1000 delay-200  mt-20 ${
             isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
@@ -195,6 +195,17 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
             </span>
             Not Code
           </h1>
+        </div>
+
+        {/* Subheadline */}
+        <div
+          className={`transform transition-all duration-1000 delay-400 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+          }`}
+        >
+          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
+            <i>"The Hottest New Programming Language is English"</i> -- Andrej Kaparthy
+          </p>
         </div>
 
         {/* Interactive Prompt Box */}
