@@ -6,6 +6,11 @@ import { Terminal } from "@/components/terminal";
 import { Toolbar } from "@/components/toolbar";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { CodeEditor } from "@/components/code-editor"
+import { AIAssistant } from "@/components/ai-assistant"
+import { Terminal } from "@/components/terminal"
+import { Toolbar } from "@/components/toolbar"
+import { useEffect, useState } from "react"
 
 export default function EditorPage() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
@@ -52,9 +57,53 @@ print("Ready to build with language! Open the AI Assistant to start →")`;
       setCode(defaultCode);
     }
   }, [searchParams]);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false)
+  const [assistantWidth, setAssistantWidth] = useState(400)
+  const [terminalHeight, setTerminalHeight] = useState(200)
+  const [code, setCode] = useState(`# Welcome to the Python playground
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("World"))
+
+# Try writing your own function here
+def add(a, b):
+    return a + b
+
+print(add(5, 3))
+
+# Example: Working with lists
+numbers = [1, 2, 3, 4, 5]
+squared = [x**2 for x in numbers]
+print(f"Original: {numbers}")
+print(f"Squared: {squared}")`)
+  const [output, setOutput] = useState("")
+  const [isRunning, setIsRunning] = useState(false)
+  const [pyodide, setPyodide] = useState<any>(null);
+
+  
+  useEffect(() => {
+    const loadPyodideFromCDN = async () => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
+      script.onload = async () => {
+        // @ts-ignore
+        const py = await window.loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
+        });
+        setPyodide(py);
+      };
+      document.body.appendChild(script);
+    };
+
+    loadPyodideFromCDN();
+  }, []);
 
   const runCode = async () => {
     setIsRunning(true);
+    if (!pyodide) return;
+    setIsRunning(true)
     try {
       // Simple Python code execution simulation
       // In a real implementation, you'd send this to a Python backend
@@ -108,6 +157,27 @@ print("Ready to build with language! Open the AI Assistant to start →")`;
       );
     } finally {
       setIsRunning(false);
+      // load packages here
+      await pyodide.loadPackage("numpy");
+      await pyodide.loadPackage("matplotlib");
+      const wrappedCode = `
+import sys
+from io import StringIO
+stdout = sys.stdout
+sys.stdout = StringIO()
+try:
+    exec(\"\"\"${code}\"\"\")
+    result = sys.stdout.getvalue()
+finally:
+    sys.stdout = stdout
+result
+    `;
+      const result = await pyodide.runPythonAsync(wrappedCode);
+      setOutput(String(result));
+    } catch (err: any) {
+      setOutput(err.toString());
+    }finally {
+      setIsRunning(false)
     }
   };
 

@@ -1,33 +1,45 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Editor } from "@monaco-editor/react";
 
 interface CodeEditorProps {
-  code: string
-  setCode: (code: string) => void
-  output: string
-  language?: string
+  code: string;
+  setCode: (code: string) => void;
+  output: string;
+  language?: string;
 }
 
-export function CodeEditor({ code, setCode, output, language = "python" }: CodeEditorProps) {
+export function CodeEditor({
+  code,
+  setCode,
+  output,
+  language = "python",
+}: CodeEditorProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Code Editor */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 min-h-0">
         <div className="h-full border rounded-lg overflow-hidden">
-          <Textarea
+          <Editor
+            className="h-full"
+            defaultLanguage="python"
+            theme="vs-dark"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="h-full font-mono text-sm resize-none border-0 focus-visible:ring-0 rounded-none"
-            placeholder={`Write your ${language} code here...`}
+            onChange={(value) => setCode(value || "")}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true
+            }}
           />
         </div>
       </div>
 
       {/* Output Panel */}
       {output && (
-        <div className="border-t p-4 bg-muted/20">
+        <div className=" border-t p-4 bg-muted/20">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
@@ -44,5 +56,5 @@ export function CodeEditor({ code, setCode, output, language = "python" }: CodeE
         </div>
       )}
     </div>
-  )
+  );
 }
