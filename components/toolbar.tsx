@@ -1,25 +1,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Bot,
-  TerminalIcon,
-  Play,
-  Save,
-  RotateCcw,
-  ArrowLeft,
-  Code,
-} from "lucide-react";
+import { Bot, Play, Save, RotateCcw, ArrowLeft, Code } from "lucide-react";
 import Link from "next/link";
 
 interface ToolbarProps {
   onToggleAssistant: () => void;
-  onToggleTerminal: () => void;
   onRunCode: () => void;
   onResetCode: () => void;
   onSaveCode: () => void;
   isAssistantOpen: boolean;
-  isTerminalOpen: boolean;
   isRunning?: boolean;
   pyodideLoading?: boolean;
   pyodideError?: string | null;
@@ -27,12 +17,10 @@ interface ToolbarProps {
 
 export function Toolbar({
   onToggleAssistant,
-  onToggleTerminal,
   onRunCode,
   onResetCode,
   onSaveCode,
   isAssistantOpen,
-  isTerminalOpen,
   isRunning = false,
   pyodideLoading = false,
   pyodideError = null,
@@ -105,17 +93,6 @@ export function Toolbar({
 
           {/* Separator */}
           <div className="w-px h-4 bg-border mx-1"></div>
-
-          {/* Panel toggles */}
-          <Button
-            size="sm"
-            variant="ghost"
-            className={`h-8 px-2 ${isTerminalOpen ? "bg-muted" : ""}`}
-            onClick={onToggleTerminal}
-            title="Toggle Terminal"
-          >
-            <TerminalIcon className="w-4 h-4" />
-          </Button>
           <Button
             size="sm"
             variant="ghost"

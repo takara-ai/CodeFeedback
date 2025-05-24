@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, User, X, Minus, Square } from "lucide-react";
+import { Bot, Send, User, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface Message {
@@ -16,17 +16,31 @@ interface AIAssistantProps {
   width: number;
   onWidthChange: (width: number) => void;
   onClose: () => void;
+  initialPrompt?: string;
 }
 
 export function AIAssistant({
   width,
   onWidthChange,
   onClose,
+  initialPrompt,
 }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isResizing, setIsResizing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Set initial prompt when component mounts
+  useEffect(() => {
+    if (initialPrompt) {
+      try {
+        const decodedPrompt = decodeURIComponent(initialPrompt);
+        setInput(decodedPrompt);
+      } catch (error) {
+        console.error("Error decoding initial prompt:", error);
+      }
+    }
+  }, [initialPrompt]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -144,7 +158,7 @@ export function AIAssistant({
                     return newMessages;
                   });
                 }
-              } catch (e) {
+              } catch {
                 // Ignore parsing errors for incomplete chunks
               }
             }
@@ -177,17 +191,9 @@ export function AIAssistant({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium">
-                Language → Code Assistant
-              </span>
+              <span className="text-sm font-medium">Code Tutor</span>
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                <Minus className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                <Square className="w-3 h-3" />
-              </Button>
               <Button
                 size="sm"
                 variant="ghost"
