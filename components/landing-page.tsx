@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { Header } from "@/components/header"
-import { Hero } from "@/components/hero"
-import { Features } from "@/components/features"
-import { Footer } from "@/components/footer"
-import { ThemeProvider } from "@/components/theme-provider"
+import { Header } from "@/components/header";
+import { Hero } from "@/components/hero";
+import { Features } from "@/components/features";
+import { Footer } from "@/components/footer";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export function LandingPage() {
   return (
@@ -18,5 +18,5 @@ export function LandingPage() {
         <Footer />
       </div>
     </ThemeProvider>
-  )
+  );
 }

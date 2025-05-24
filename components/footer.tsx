@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import { Code } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { Code } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 export function Footer() {
-  const [isVisible, setIsVisible] = useState(false)
-  const footerRef = useRef<HTMLElement>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const footerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true)
+          setIsVisible(true);
         }
       },
-      { threshold: 0.1 },
-    )
+      { threshold: 0.1 }
+    );
 
     if (footerRef.current) {
-      observer.observe(footerRef.current)
+      observer.observe(footerRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [])
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <footer
@@ -36,13 +36,18 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           {/* Logo & Description */}
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl mb-4 group">
+            <Link
+              href="/"
+              className="flex items-center gap-2 font-bold text-xl mb-4 group"
+            >
               <Code className="w-6 h-6 text-blue-600 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="group-hover:text-blue-600 transition-colors duration-300">CodeLab</span>
+              <span className="group-hover:text-blue-600 transition-colors duration-300">
+                CodeLab
+              </span>
             </Link>
             <p className="text-muted-foreground mb-4 max-w-md">
-              The AI-powered code editor that helps developers write better code faster. Experience the future of coding
-              today.
+              The AI-powered code editor that helps developers write better code
+              faster. Experience the future of coding today.
             </p>
           </div>
 
@@ -127,7 +132,9 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-muted-foreground">© 2024 CodeLab. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">
+            © 2024 CodeLab. All rights reserved.
+          </p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <Link
               href="/privacy"
@@ -145,5 +152,5 @@ export function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }
