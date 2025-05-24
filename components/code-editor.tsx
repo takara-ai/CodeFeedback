@@ -20,7 +20,7 @@ export function CodeEditor({
   return (
     <div className="flex flex-col h-full">
       {/* Code Editor */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 min-h-0">
         <div className="h-full border rounded-lg overflow-hidden">
           <Editor
             className="h-full"
@@ -28,6 +28,11 @@ export function CodeEditor({
             theme="vs-dark"
             value={code}
             onChange={(value) => setCode(value || "")}
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true
+            }}
           />
         </div>
       </div>
