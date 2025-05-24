@@ -2,7 +2,6 @@
 
 import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
-import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export function LandingPage() {
@@ -13,7 +12,6 @@ export function LandingPage() {
         <main>
           <Hero />
         </main>
-        <Footer />
       </div>
     </ThemeProvider>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Moon, Sun, Menu } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useState } from "react";
@@ -13,16 +13,7 @@ export function Header() {
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 animate-slide-down">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-bold text-xl group"
-        >
-          <MessageSquare className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
-          <span className="group-hover:text-blue-600 transition-colors duration-300">
-            LangCode
-          </span>
-        </Link>
+        <div></div>
 
         {/* Mobile Menu Button */}
         <Button
@@ -37,6 +28,7 @@ export function Header() {
         {/* Actions */}
         <div className="hidden md:flex items-center gap-2">
           {/* Theme Toggle */}
+
           <Button
             variant="ghost"
             size="icon"
@@ -46,28 +38,6 @@ export function Header() {
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
-          </Button>
-
-          {/* CTA Buttons */}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="hover:scale-105 transition-transform duration-300"
-          >
-            <Link href="/login">Sign In</Link>
-          </Button>
-          <Button
-            size="sm"
-            asChild
-            className="hover:scale-105 transition-all duration-300 hover:shadow-lg group"
-          >
-            <Link href="/editor">
-              Start Learning
-              <span className="ml-1 group-hover:translate-x-1 transition-transform duration-300">
-                →
-              </span>
-            </Link>
           </Button>
         </div>
       </div>
