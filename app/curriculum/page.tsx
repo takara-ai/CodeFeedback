@@ -2,270 +2,380 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { Header } from "@/components/header";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LessonContent } from "@/components/lesson-content";
+import { ComparisonView } from "@/components/comparison-view";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, ArrowRight, Play } from "lucide-react";
-import Link from "next/link";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  BookOpen,
+  Target,
+  CheckCircle,
+  Clock,
+  Lock,
+  Trophy,
+  Zap,
+  TrendingUp,
+} from "lucide-react";
+import { lessonGenerator, GeneratedLesson } from "@/lib/lesson-generator";
+import { ProgressTracker } from "@/lib/progress-tracker";
+import { PromptGrade, CodeAssessment } from "@/types/vibe-learning";
 
-interface CurriculumStep {
-  title: string;
-  learn: string;
-  prompt: string;
-  code: string;
+interface LessonState {
+  id: number;
+  status: "locked" | "current" | "completed";
+  score?: number;
+}
+
+interface ComparisonData {
+  promptComparison: {
+    original: string;
+    final: string;
+    improvements: string[];
+  };
+  codeComparison: {
+    originalQuality: number;
+    finalQuality: number;
+    improvementPercentage: number;
+    keyEnhancements: string[];
+  };
+  learningJourney: {
+    lessonsCompleted: number;
+    totalImprovements: number;
+    biggestWin: string;
+  };
 }
 
 function CurriculumContent() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [steps, setSteps] = useState<CurriculumStep[]>([]);
-  const [title, setTitle] = useState("");
-  const [goal, setGoal] = useState("");
+  const [lessons, setLessons] = useState<GeneratedLesson[]>([]);
+  const [currentLessonId, setCurrentLessonId] = useState(1);
+  const [lessonStates, setLessonStates] = useState<LessonState[]>([]);
+  const [progressTracker, setProgressTracker] =
+    useState<ProgressTracker | null>(null);
+  const [isGeneratingLessons, setIsGeneratingLessons] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonData, setComparisonData] = useState<ComparisonData | null>(
+    null
+  );
+  const [originalCode, setOriginalCode] = useState("");
+  const [finalCode, setFinalCode] = useState("");
 
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const curriculumData = searchParams.get("curriculum");
-    if (curriculumData) {
-      try {
-        const decodedCurriculum = decodeURIComponent(curriculumData);
-        parseCurriculum(decodedCurriculum);
-      } catch (error) {
-        console.error("Error decoding curriculum:", error);
-      }
+    const originalPrompt = searchParams.get("originalPrompt");
+    const originalCodeParam = searchParams.get("originalCode");
+
+    if (originalPrompt && originalCodeParam) {
+      initializeDynamicCurriculum(originalPrompt, originalCodeParam);
     }
   }, [searchParams]);
 
-  const parseCurriculum = (content: string) => {
-    const lines = content.split("\n");
-    let parsedTitle = "";
-    let parsedGoal = "";
-    const parsedSteps: CurriculumStep[] = [];
+  const initializeDynamicCurriculum = async (
+    originalPrompt: string,
+    originalCode: string
+  ) => {
+    setIsGeneratingLessons(true);
+    setOriginalCode(originalCode);
 
-    let currentStepData: CurriculumStep | null = null;
-    let currentCode = "";
+    try {
+      // Initialize progress tracker
+      const tracker = new ProgressTracker(originalPrompt, originalCode);
+      await tracker.initializeBaseline();
+      setProgressTracker(tracker);
 
-    let inCodeBlock = false;
+      // Generate dynamic lessons based on user's code
+      const generatedLessons = await lessonGenerator.generateLessonSequence({
+        originalPrompt,
+        originalCode,
+      });
 
-    for (const line of lines) {
-      if (line.startsWith("# Learning Path:")) {
-        parsedTitle = line.replace("# Learning Path:", "").trim();
-      } else if (line.startsWith("**Goal:**")) {
-        parsedGoal = line.replace("**Goal:**", "").trim();
-      } else if (line.startsWith("## Step ")) {
-        if (currentStepData) {
-          currentStepData.code = currentCode.trim();
-          parsedSteps.push(currentStepData);
-        }
-        currentStepData = {
-          title: line.replace(/## Step \d+:\s*/, "").trim(),
-          learn: "",
-          prompt: "",
-          code: "",
-        };
-        currentCode = "";
-      } else if (line.startsWith("**Learn:**") && currentStepData) {
-        currentStepData.learn = line.replace("**Learn:**", "").trim();
-      } else if (line.startsWith("**Prompt:**") && currentStepData) {
-        currentStepData.prompt = line.replace("**Prompt:**", "").trim();
-      } else if (line.startsWith("```python")) {
-        inCodeBlock = true;
-      } else if (line.startsWith("```") && inCodeBlock) {
-        inCodeBlock = false;
-      } else if (inCodeBlock) {
-        currentCode += line + "\n";
-      }
+      setLessons(generatedLessons);
+
+      // Initialize lesson states
+      const initialStates: LessonState[] = generatedLessons.map(
+        (lesson, index) => ({
+          id: lesson.id,
+          status: index === 0 ? "current" : "locked",
+        })
+      );
+      setLessonStates(initialStates);
+    } catch (error) {
+      console.error("Error generating curriculum:", error);
     }
 
-    if (currentStepData) {
-      currentStepData.code = currentCode.trim();
-      parsedSteps.push(currentStepData);
-    }
-
-    setTitle(parsedTitle);
-    setGoal(parsedGoal);
-    setSteps(parsedSteps);
+    setIsGeneratingLessons(false);
   };
 
-  const progressPercentage =
-    steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+  const handleLessonCompletion = (
+    lessonId: number,
+    improvedPrompt: string,
+    newCode: string,
+    promptGrade: PromptGrade,
+    codeAssessment: CodeAssessment,
+    improvementNotes: string[]
+  ) => {
+    if (!progressTracker) return;
+
+    // Record progress
+    progressTracker.recordLessonCompletion(
+      lessonId,
+      improvedPrompt,
+      newCode,
+      promptGrade,
+      codeAssessment,
+      improvementNotes
+    );
+
+    // Update lesson states
+    setLessonStates((prev) =>
+      prev.map((state) => {
+        if (state.id === lessonId) {
+          return {
+            ...state,
+            status: "completed" as const,
+            score: promptGrade.score,
+          };
+        }
+        if (state.id === lessonId + 1) {
+          return { ...state, status: "current" as const };
+        }
+        return state;
+      })
+    );
+
+    // Save progress
+    progressTracker.saveProgress();
+
+    // Check if curriculum is complete
+    if (lessonId === lessons.length) {
+      // Show final comparison
+      const finalComparison = progressTracker.generateFinalComparison();
+      setComparisonData(finalComparison);
+      setFinalCode(newCode);
+      setShowComparison(true);
+    } else {
+      // Move to next lesson
+      setCurrentLessonId(lessonId + 1);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "current":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "locked":
+        return <Lock className="w-4 h-4 text-gray-400" />;
+      default:
+        return <Lock className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getStatusBadge = (state: LessonState) => {
+    switch (state.status) {
+      case "completed":
+        return (
+          <Badge className="bg-green-100 text-green-800 text-xs">
+            {state.score}/100
+          </Badge>
+        );
+      case "current":
+        return (
+          <Badge className="bg-blue-100 text-blue-800 text-xs">
+            In Progress
+          </Badge>
+        );
+      case "locked":
+        return (
+          <Badge variant="secondary" className="text-xs">
+            Locked
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const completedLessons = lessonStates.filter(
+    (state) => state.status === "completed"
+  ).length;
+  const progressPercentage = (completedLessons / lessons.length) * 100;
+
+  if (showComparison && comparisonData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <ComparisonView
+          data={comparisonData}
+          originalCode={originalCode}
+          finalCode={finalCode}
+          onStartNew={() => {
+            setShowComparison(false);
+            setLessons([]);
+            setCurrentLessonId(1);
+            setLessonStates([]);
+            setProgressTracker(null);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Home
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                <h1 className="text-xl font-bold">
-                  {title || "Loading Curriculum..."}
-                </h1>
+      <Header />
+      <div className="flex">
+        {/* Left Sidebar - Dynamic Course Navigation */}
+        <div className="w-80 border-r">
+          <div className="p-6 border-b">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">Your Custom Path</h2>
+                <p className="text-sm text-muted-foreground">
+                  Tailored to your code
+                </p>
               </div>
             </div>
-            <Badge variant="outline">
-              Step {currentStep + 1} of {steps.length}
-            </Badge>
-          </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar - Curriculum Overview */}
-          <div className="lg:col-span-1">
-            <div className="bg-card rounded-lg border p-6 sticky top-8">
-              <h2 className="font-semibold mb-4">Learning Path</h2>
-              {goal && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                    Goal
-                  </h3>
-                  <p className="text-sm">{goal}</p>
-                </div>
-              )}
-
-              <div className="mb-4">
-                <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                  <span>Progress</span>
-                  <span>
-                    {currentStep + 1}/{steps.length}
-                  </span>
-                </div>
-                <Progress value={progressPercentage} className="h-2" />
+            {/* Progress Overview */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Progress</span>
+                <span className="font-medium">
+                  {completedLessons}/{lessons.length}
+                </span>
               </div>
+              <Progress value={progressPercentage} className="h-2" />
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <TrendingUp className="w-3 h-3" />
+                {progressTracker && (
+                  <span>
+                    {progressTracker.getProgressSummary().improvementPercentage}
+                    % improvement so far
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                {steps.map((step, index) => (
-                  <Button
-                    key={index}
-                    variant={index === currentStep ? "default" : "ghost"}
-                    size="sm"
-                    className="w-full justify-start h-auto p-3"
-                    onClick={() => setCurrentStep(index)}
+          {/* Dynamic Lesson List */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-3">
+              {lessons.map((lesson) => {
+                const state = lessonStates.find((s) => s.id === lesson.id);
+                if (!state) return null;
+
+                return (
+                  <Card
+                    key={lesson.id}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      currentLessonId === lesson.id
+                        ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                        : state.status === "locked"
+                        ? "opacity-60"
+                        : "hover:shadow-md"
+                    }`}
+                    onClick={() => {
+                      if (state.status !== "locked") {
+                        setCurrentLessonId(lesson.id);
+                      }
+                    }}
                   >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="flex-shrink-0">
-                        {index < currentStep ? (
-                          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getStatusIcon(state.status)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium text-sm truncate">
+                              {lesson.title}
+                            </h3>
+                            {getStatusBadge(state)}
                           </div>
-                        ) : index === currentStep ? (
-                          <Play className="w-5 h-5" />
-                        ) : (
-                          <div className="w-5 h-5 border-2 border-muted-foreground rounded-full"></div>
-                        )}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-sm">{step.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Step {index + 1}
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {lesson.description}
+                          </p>
+                          {lesson.targetImprovement && (
+                            <div className="mt-2 flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-yellow-500" />
+                              <span className="text-xs text-yellow-600 font-medium">
+                                {lesson.targetImprovement}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </Button>
-                ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Final Achievement */}
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
+                <CardContent className="p-4 text-center">
+                  <Trophy className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                  <h3 className="font-semibold text-sm text-purple-800 dark:text-purple-300">
+                    Final Comparison
+                  </h3>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                    See your amazing improvement!
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Main Content - Dynamic Lesson */}
+        <div className="flex-1 overflow-auto">
+          {isGeneratingLessons ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <h2 className="text-xl font-semibold mb-2">
+                  🤖 AI is Analyzing Your Code
+                </h2>
+                <p className="text-muted-foreground max-w-md">
+                  Creating a personalized curriculum based on your specific
+                  prompt and code. Each lesson will target areas where your code
+                  can be improved through better prompting.
+                </p>
               </div>
             </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {steps.length > 0 && steps[currentStep] && (
-              <div className="bg-card rounded-lg border p-8">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">
-                    {steps[currentStep].title}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {steps[currentStep].learn}
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">
-                      AI Prompt for This Step
-                    </h3>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <p className="text-blue-800 dark:text-blue-200">
-                        {steps[currentStep].prompt}
-                      </p>
-                    </div>
-                  </div>
-
-                  {steps[currentStep].code && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">
-                        Expected Code Example
-                      </h3>
-                      <pre className="bg-gray-50 dark:bg-gray-900 border rounded-lg p-4 overflow-x-auto">
-                        <code className="text-sm">
-                          {steps[currentStep].code}
-                        </code>
-                      </pre>
-                    </div>
-                  )}
-
-                  <div className="flex gap-4">
-                    <Button asChild>
-                      <Link
-                        href={`/editor?prompt=${encodeURIComponent(
-                          steps[currentStep].prompt
-                        )}`}
-                      >
-                        Start Coding in Editor
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link href="/">Try Different Curriculum</Link>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Navigation */}
-                <div className="flex justify-between mt-8 pt-6 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                    disabled={currentStep === 0}
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Previous Step
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      setCurrentStep(
-                        Math.min(steps.length - 1, currentStep + 1)
-                      )
-                    }
-                    disabled={currentStep === steps.length - 1}
-                  >
-                    Next Step
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
+          ) : lessons.length > 0 ? (
+            <LessonContent
+              lesson={
+                lessons.find((l) => l.id === currentLessonId) || lessons[0]
+              }
+              onLessonComplete={handleLessonCompletion}
+              progressTracker={progressTracker}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-xl font-semibold mb-2">No Code Provided</h2>
+                <p className="text-muted-foreground mb-4">
+                  Generate some code first to create your personalized
+                  curriculum
+                </p>
+                <Button onClick={() => (window.location.href = "/")}>
+                  Go Back to Generator
+                </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function CurriculumLoading() {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Loading curriculum...</p>
       </div>
     </div>
   );
@@ -273,8 +383,21 @@ function CurriculumLoading() {
 
 export default function CurriculumPage() {
   return (
-    <Suspense fallback={<CurriculumLoading />}>
-      <CurriculumContent />
-    </Suspense>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-muted-foreground">
+                Loading your personalized curriculum...
+              </p>
+            </div>
+          </div>
+        }
+      >
+        <CurriculumContent />
+      </Suspense>
+    </ThemeProvider>
   );
 }
