@@ -52,10 +52,12 @@ export function Hero() {
 
   useEffect(() => {
     setIsVisible(true);
+  }, [])
 
+  useEffect(() => {
     if (!audioStream) return;
 
-    const controller = new AbortController();
+    let cleanup: (() => void) | null = null;
 
     transcribeWithDeepgram({
       stream: audioStream,
@@ -65,7 +67,13 @@ export function Hero() {
       onError: (err) => console.error("Deepgram transcription error:", err),
       onClose: () => console.log("Deepgram transcription ended"),
       timeoutMs: 30000,
+    }).then((cleanupFn) => {
+      cleanup = cleanupFn
     });
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [audioStream]);
 
   const generateContent = async () => {
