@@ -177,7 +177,9 @@ export function AIAssistant({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium">Python AI Assistant</span>
+              <span className="text-sm font-medium">
+                Language → Code Assistant
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
@@ -201,6 +203,21 @@ export function AIAssistant({
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bot className="w-12 h-12 mx-auto mb-4 text-blue-600" />
+                <h3 className="font-medium mb-2">
+                  Welcome to Natural Language Programming!
+                </h3>
+                <p className="text-sm">
+                  Describe what you want to build in plain English.
+                </p>
+                <div className="mt-4 text-xs space-y-1">
+                  <p>Try: "Create a function that finds prime numbers"</p>
+                  <p>Or: "Build a simple password generator"</p>
+                </div>
+              </div>
+            )}
             {messages.map((message) => (
               <div
                 key={crypto.randomUUID()}
@@ -254,7 +271,7 @@ export function AIAssistant({
                       ></div>
                     </div>
                     <span className="text-muted-foreground">
-                      AI is thinking...
+                      Creating your code...
                     </span>
                   </div>
                 </div>
@@ -271,8 +288,8 @@ export function AIAssistant({
               onChange={(e) => setInput(e.target.value)}
               placeholder={
                 isLoading
-                  ? "AI is thinking..."
-                  : "Ask about your Python code..."
+                  ? "Creating your code..."
+                  : "Describe what you want to build..."
               }
               onKeyPress={(e) => e.key === "Enter" && sendMessage()}
               className="flex-1"
