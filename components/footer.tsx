@@ -2,6 +2,7 @@
 
 import { Code } from "lucide-react";
 import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function Footer() {
@@ -35,19 +36,18 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Logo & Description */}
-          <div className="md:col-span-2">
-            <Link
+            <div className="md:col-span-2">
+              <Link
               href="/"
-              className="flex items-center gap-2 font-bold text-xl mb-4 group"
+              className="flex items-center gap-2 font-bold text-xl group"
             >
-              <Code className="w-6 h-6 text-blue-600 group-hover:rotate-12 transition-transform duration-300" />
+              <MessageSquare className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
               <span className="group-hover:text-blue-600 transition-colors duration-300">
-                CodeLab
+                LangCode
               </span>
             </Link>
             <p className="text-muted-foreground mb-4 max-w-md">
-              The AI-powered code editor that helps developers write better code
-              faster. Experience the future of coding today.
+              The only modern solution for teaching <s>developers</s> <strong>everyone</strong> how to build what they actually want, right now.
             </p>
           </div>
 
