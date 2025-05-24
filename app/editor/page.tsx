@@ -4,15 +4,11 @@ import { CodeEditor } from "@/components/code-editor";
 import { AIAssistant } from "@/components/ai-assistant";
 import { Terminal } from "@/components/terminal";
 import { Toolbar } from "@/components/toolbar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CodeEditor } from "@/components/code-editor"
-import { AIAssistant } from "@/components/ai-assistant"
-import { Terminal } from "@/components/terminal"
-import { Toolbar } from "@/components/toolbar"
-import { useEffect, useState } from "react"
+import type { PyodideInterface } from "@/types/pyodide";
 
-export default function EditorPage() {
+function EditorContent() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [assistantWidth, setAssistantWidth] = useState(400);
@@ -20,6 +16,10 @@ export default function EditorPage() {
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
+  const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
+  const [pyodideLoading, setPyodideLoading] = useState(false);
+  const [pyodideError, setPyodideError] = useState<string | null>(null);
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -42,13 +42,15 @@ export default function EditorPage() {
 
 print("Ready to build with language! Open the AI Assistant to start →")`;
 
+  // Initialize code from URL params or default
   useEffect(() => {
-    // Check if there's code passed from the landing page
     const generatedCode = searchParams.get("code");
     if (generatedCode) {
       try {
         const decodedCode = decodeURIComponent(generatedCode);
         setCode(decodedCode);
+        // Set a welcome message in output when code is loaded from URL
+        setOutput("Code loaded! Click 'Run' to execute your Python code.");
       } catch (error) {
         console.error("Error decoding code from URL:", error);
         setCode(defaultCode);
@@ -56,139 +58,181 @@ print("Ready to build with language! Open the AI Assistant to start →")`;
     } else {
       setCode(defaultCode);
     }
-  }, [searchParams]);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false)
-  const [assistantWidth, setAssistantWidth] = useState(400)
-  const [terminalHeight, setTerminalHeight] = useState(200)
-  const [code, setCode] = useState(`# Welcome to the Python playground
-def greet(name):
-    return f"Hello, {name}!"
+  }, [searchParams, defaultCode]);
 
-print(greet("World"))
-
-# Try writing your own function here
-def add(a, b):
-    return a + b
-
-print(add(5, 3))
-
-# Example: Working with lists
-numbers = [1, 2, 3, 4, 5]
-squared = [x**2 for x in numbers]
-print(f"Original: {numbers}")
-print(f"Squared: {squared}")`)
-  const [output, setOutput] = useState("")
-  const [isRunning, setIsRunning] = useState(false)
-  const [pyodide, setPyodide] = useState<any>(null);
-
-  
+  // Load Pyodide
   useEffect(() => {
     const loadPyodideFromCDN = async () => {
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
-      script.onload = async () => {
-        // @ts-ignore
-        const py = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
-        });
-        setPyodide(py);
-      };
-      document.body.appendChild(script);
+      try {
+        setPyodideLoading(true);
+        setPyodideError(null);
+        setOutput("Loading Python environment...");
+
+        // Check if Pyodide is already loaded
+        if (window.loadPyodide) {
+          const py = await window.loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+          });
+          setPyodide(py);
+          setPyodideLoading(false);
+          setOutput("Python environment ready! You can now run your code.");
+          return;
+        }
+
+        // Create and load the script
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+        script.async = true;
+        scriptRef.current = script;
+
+        script.onload = async () => {
+          try {
+            if (window.loadPyodide) {
+              const py = await window.loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+              });
+              setPyodide(py);
+              setOutput("Python environment ready! You can now run your code.");
+            } else {
+              throw new Error("Pyodide failed to load properly");
+            }
+          } catch (error) {
+            console.error("Error initializing Pyodide:", error);
+            setPyodideError(
+              error instanceof Error
+                ? error.message
+                : "Failed to initialize Pyodide"
+            );
+            setOutput(
+              "❌ Failed to load Python environment. Please refresh the page to try again."
+            );
+          } finally {
+            setPyodideLoading(false);
+          }
+        };
+
+        script.onerror = () => {
+          console.error("Failed to load Pyodide script");
+          setPyodideError("Failed to load Pyodide from CDN");
+          setPyodideLoading(false);
+          setOutput(
+            "❌ Failed to load Python environment from CDN. Please check your internet connection and refresh the page."
+          );
+        };
+
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Error setting up Pyodide:", error);
+        setPyodideError(
+          error instanceof Error ? error.message : "Failed to setup Pyodide"
+        );
+        setPyodideLoading(false);
+        setOutput(
+          "❌ Error setting up Python environment. Please refresh the page to try again."
+        );
+      }
     };
 
     loadPyodideFromCDN();
+
+    // Cleanup function
+    return () => {
+      if (scriptRef.current && scriptRef.current.parentNode) {
+        scriptRef.current.parentNode.removeChild(scriptRef.current);
+      }
+    };
   }, []);
 
   const runCode = async () => {
-    setIsRunning(true);
-    if (!pyodide) return;
-    setIsRunning(true)
-    try {
-      // Simple Python code execution simulation
-      // In a real implementation, you'd send this to a Python backend
-      const lines = code.split("\n");
-      const outputs: string[] = [];
+    if (pyodideLoading) {
+      setOutput("⏳ Python environment is still loading... Please wait.");
+      return;
+    }
 
-      // Check for the welcome message
-      if (
-        code.includes(
-          'print("Ready to build with language! Open the AI Assistant to start →")'
-        )
-      ) {
-        outputs.push(
-          "Ready to build with language! Open the AI Assistant to start →"
-        );
-      }
-
-      // Simulate some basic Python execution
-      if (code.includes('print(greet("World"))')) {
-        outputs.push("Hello, World!");
-      }
-      if (code.includes("print(add(5, 3))")) {
-        outputs.push("8");
-      }
-      if (code.includes('print(f"Original: {numbers}")')) {
-        outputs.push("Original: [1, 2, 3, 4, 5]");
-      }
-      if (code.includes('print(f"Squared: {squared}")')) {
-        outputs.push("Squared: [1, 4, 9, 16, 25]");
-      }
-
-      // Look for other print statements
-      lines.forEach((line) => {
-        const trimmed = line.trim();
-        if (
-          trimmed.startsWith("print(") &&
-          !outputs.some((o) => line.includes(o))
-        ) {
-          // Simple evaluation for basic print statements
-          if (trimmed.includes('"') || trimmed.includes("'")) {
-            const match = trimmed.match(/print$$["'](.+?)["']$$/);
-            if (match) outputs.push(match[1]);
-          }
-        }
-      });
-
-      setOutput(outputs.join("\n") || "Code executed successfully!");
-    } catch (error) {
+    if (pyodideError) {
       setOutput(
-        `Error: ${error instanceof Error ? error.message : "Unknown error"}`
+        `❌ Python environment error: ${pyodideError}\nPlease refresh the page to try again.`
       );
-    } finally {
-      setIsRunning(false);
-      // load packages here
-      await pyodide.loadPackage("numpy");
-      await pyodide.loadPackage("matplotlib");
+      return;
+    }
+
+    if (!pyodide) {
+      setOutput(
+        "❌ Python environment is not available. Please refresh the page."
+      );
+      return;
+    }
+
+    setIsRunning(true);
+    setOutput("🚀 Running your code...");
+
+    try {
+      // Load packages with error handling
+      try {
+        await pyodide.loadPackage(["numpy", "matplotlib"]);
+      } catch (packageError) {
+        console.warn("Some packages failed to load:", packageError);
+        // Continue execution even if packages fail to load
+      }
+
       const wrappedCode = `
 import sys
 from io import StringIO
+import traceback
+
+# Capture stdout
 stdout = sys.stdout
 sys.stdout = StringIO()
+
 try:
-    exec(\"\"\"${code}\"\"\")
+    exec("""${code.replace(/"/g, '\\"').replace(/\n/g, "\\n")}""")
     result = sys.stdout.getvalue()
+except Exception as e:
+    # Get full traceback for better error reporting
+    import traceback
+    result = f"Error: {str(e)}\\n\\nTraceback:\\n{traceback.format_exc()}"
 finally:
     sys.stdout = stdout
-result
-    `;
+
+result`;
+
       const result = await pyodide.runPythonAsync(wrappedCode);
-      setOutput(String(result));
+      const output = String(result);
+
+      if (output.trim()) {
+        setOutput(output);
+      } else {
+        setOutput("✅ Code executed successfully! (No output produced)");
+      }
     } catch (err: any) {
-      setOutput(err.toString());
-    }finally {
-      setIsRunning(false)
+      console.error("Code execution error:", err);
+      setOutput(`❌ Execution Error: ${err.toString()}`);
+    } finally {
+      setIsRunning(false);
     }
   };
 
   const resetCode = () => {
     setCode(defaultCode);
-    setOutput("");
+    setOutput(
+      pyodide
+        ? "Python environment ready! You can now run your code."
+        : "Loading Python environment..."
+    );
   };
 
   const saveCode = () => {
-    // Simulate saving
-    console.log("Code saved!");
+    // Create a downloadable file
+    const element = document.createElement("a");
+    const file = new Blob([code], { type: "text/plain" });
+    element.href = URL.createObjectURL(file);
+    element.download = "main.py";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+
+    // Show success message
+    setOutput("💾 Code saved as main.py!");
   };
 
   return (
@@ -203,6 +247,8 @@ result
         isAssistantOpen={isAssistantOpen}
         isTerminalOpen={isTerminalOpen}
         isRunning={isRunning}
+        pyodideLoading={pyodideLoading}
+        pyodideError={pyodideError}
       />
 
       {/* Main Content Area */}
@@ -254,5 +300,38 @@ result
         )}
       </div>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function EditorLoading() {
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      <div className="border-b bg-background px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-16 h-4 bg-gray-200 animate-pulse rounded"></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-8 h-8 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-1">
+        <div className="flex-1 bg-gray-50 animate-pulse"></div>
+        <div className="w-96 bg-gray-100 animate-pulse"></div>
+      </div>
+    </div>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={<EditorLoading />}>
+      <EditorContent />
+    </Suspense>
   );
 }
