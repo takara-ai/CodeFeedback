@@ -63,15 +63,17 @@ function CurriculumContent() {
   );
   const [originalCode, setOriginalCode] = useState("");
   const [finalCode, setFinalCode] = useState("");
+  const [originalPrompt, setOriginalPrompt] = useState("");
 
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const originalPrompt = searchParams.get("originalPrompt");
+    const originalPromptParam = searchParams.get("originalPrompt");
     const originalCodeParam = searchParams.get("originalCode");
 
-    if (originalPrompt && originalCodeParam) {
-      initializeDynamicCurriculum(originalPrompt, originalCodeParam);
+    if (originalPromptParam && originalCodeParam) {
+      setOriginalPrompt(originalPromptParam);
+      initializeDynamicCurriculum(originalPromptParam, originalCodeParam);
     }
   }, [searchParams]);
 
@@ -305,11 +307,11 @@ function CurriculumContent() {
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             {lesson.description}
                           </p>
-                          {lesson.targetImprovement && (
+                          {lesson.improvementFocus && (
                             <div className="mt-2 flex items-center gap-1">
                               <Zap className="w-3 h-3 text-yellow-500" />
                               <span className="text-xs text-yellow-600 font-medium">
-                                {lesson.targetImprovement}
+                                {lesson.improvementFocus}
                               </span>
                             </div>
                           )}
@@ -357,6 +359,7 @@ function CurriculumContent() {
               lesson={
                 lessons.find((l) => l.id === currentLessonId) || lessons[0]
               }
+              originalPrompt={originalPrompt}
               onLessonComplete={handleLessonCompletion}
               progressTracker={progressTracker}
             />
