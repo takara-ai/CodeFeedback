@@ -1,10 +1,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Editor } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CodeEditorProps {
   code: string;
@@ -12,7 +17,7 @@ interface CodeEditorProps {
   output: string;
   language: string;
   onLanguageChange: (language: string) => void;
-  onSketchReady?: (sketch: any) => void;
+  onSketchReady?: (sketch: unknown) => void;
 }
 
 export function CodeEditor({
@@ -24,12 +29,12 @@ export function CodeEditor({
   onSketchReady,
 }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sketchRef = useRef<any>(null);
+  const sketchRef = useRef<unknown>(null);
 
   useEffect(() => {
     // Only clean up when switching away from JavaScript
     if (language === "python" && sketchRef.current) {
-      sketchRef.current.remove();
+      (sketchRef.current as { remove?: () => void }).remove?.();
       sketchRef.current = null;
     }
 
@@ -37,13 +42,13 @@ export function CodeEditor({
     if (language === "javascript") {
       if (onSketchReady) {
         // Signal that we're ready for sketch creation, but don't create one yet
-        onSketchReady(null as any);
+        onSketchReady(null);
       }
     }
 
     return () => {
       if (sketchRef.current) {
-        sketchRef.current.remove();
+        (sketchRef.current as { remove?: () => void }).remove?.();
         sketchRef.current = null;
       }
     };
@@ -75,11 +80,11 @@ export function CodeEditor({
               language={language}
               theme="vs-dark"
               value={code}
-              onChange={(value) => setCode(value || "")}
+              onChange={(value: string | undefined) => setCode(value || "")}
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
-                automaticLayout: true
+                automaticLayout: true,
               }}
             />
           </div>
@@ -116,15 +121,18 @@ export function CodeEditor({
               </CardTitle>
             </CardHeader>
             <CardContent className="h-full">
-              <div 
-                ref={containerRef} 
+              <div
+                ref={containerRef}
                 className="w-full h-full bg-white rounded overflow-hidden flex items-center justify-center border"
                 style={{ minHeight: "500px" }}
                 data-p5-canvas-container
               >
                 <div className="text-gray-500 text-center">
                   <p className="text-lg font-semibold">p5.js Canvas</p>
-                  <p className="text-sm mt-2">Click "Run" to execute your code and see the visual output here</p>
+                  <p className="text-sm mt-2">
+                    Click "Run" to execute your code and see the visual output
+                    here
+                  </p>
                 </div>
               </div>
             </CardContent>
