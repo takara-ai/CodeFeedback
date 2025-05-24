@@ -1,9 +1,10 @@
 "use client";
 
+import { transcribeWithDeepgram } from "@/lib/transcribe";
+import { AudioRecorderButton } from "./audio-recorder-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Mic,
   ArrowUp,
   BookOpen,
   Hammer,
@@ -20,6 +21,8 @@ export function Hero() {
   const [generatedCurriculum, setGeneratedCurriculum] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<"code" | "curriculum">("curriculum");
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+
   const supriseBuilds: string[] = [
     "Build a pomodoro timer in the terminal using Python",
     "Write a python script to convert simple Markdown to HTML",
@@ -32,6 +35,8 @@ export function Hero() {
     "I want to learn how to handle and visualise data with pandas and matplotlib",
     "I want to master error handling and debugging techniques in Python",
   ];
+
+
 
   const handleSupriseClick = () => {
     if (mode == "code") {
@@ -47,7 +52,21 @@ export function Hero() {
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+
+    if (!audioStream) return;
+
+    const controller = new AbortController();
+
+    transcribeWithDeepgram({
+      stream: audioStream,
+      onTranscript: (text) => {
+        setPrompt((prev) => `${prev} ${text}`.trim());
+      },
+      onError: (err) => console.error("Deepgram transcription error:", err),
+      onClose: () => console.log("Deepgram transcription ended"),
+      timeoutMs: 30000,
+    });
+  }, [audioStream]);
 
   const generateContent = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -258,15 +277,10 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                 </Button>
               </div>
 
-              {/* Audio button */}
+              
               <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
-                >
-                  <Mic className="w-5 h-5" />
-                </Button>
+                {/* Audio button */}
+                <AudioRecorderButton onRecording={(stream) => setAudioStream(stream)} />
                 {/* Submission Button */}
                 <Button
                   variant="ghost"
