@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,7 @@ import { cleanAndParseJSON } from "@/lib/json-cleaner";
 
 interface LessonContentProps {
   lesson: Lesson;
+  originalPrompt?: string;
   onLessonComplete?: (
     lessonId: number,
     improvedPrompt: string,
@@ -25,18 +26,25 @@ interface LessonContentProps {
 
 export function LessonContent({
   lesson,
+  originalPrompt: originalPromptProp,
   onLessonComplete,
 }: LessonContentProps) {
-  const [userPrompt, setUserPrompt] = useState("");
+  const [userPrompt, setUserPrompt] = useState(originalPromptProp || "");
   const [generatedCode, setGeneratedCode] = useState("");
   const [promptGrade, setPromptGrade] = useState<PromptGrade | null>(null);
   const [codeAssessment, setCodeAssessment] = useState<CodeAssessment | null>(
     null
   );
   const [isProcessing, setIsProcessing] = useState(false);
-  const [originalPrompt] = useState(
-    lesson.challenge || "Build an expense tracker"
-  );
+  const originalPrompt =
+    originalPromptProp || lesson.challenge || "Build an expense tracker";
+
+  // Update user prompt when original prompt prop changes
+  useEffect(() => {
+    if (originalPromptProp) {
+      setUserPrompt(originalPromptProp);
+    }
+  }, [originalPromptProp]);
 
   const handleImproveAndGrade = async () => {
     if (!userPrompt.trim() || isProcessing) return;
@@ -233,7 +241,7 @@ Code: ${code}
                     Improve your prompt:
                   </label>
                   <Textarea
-                    placeholder="Rewrite your prompt with the improvements suggested above..."
+                    placeholder="Edit and improve your original prompt with the lesson's guidance..."
                     value={userPrompt}
                     onChange={(e) => setUserPrompt(e.target.value)}
                     rows={4}
