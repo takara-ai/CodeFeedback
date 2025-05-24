@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Mic,
@@ -10,8 +9,6 @@ import {
   Hammer,
   Sparkles,
   MessageSquare,
-  Send,
-  Code2,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -27,22 +24,26 @@ export function Hero() {
     "Build a pomodoro timer in the terminal using Python",
     "Write a python script to convert simple Markdown to HTML",
     "Make a multiple-choice quiz game in Python",
-    "Detect duplicate files in a directory using hash comparison in Python"
-  ]
+    "Detect duplicate files in a directory using hash comparison in Python",
+  ];
   const supriseCurriculums: string[] = [
     "I want to learn how to build a command-line Pomodoro timer wioth Python",
     "I want to understand object-oriented programming with Python from scratch",
     "I want to learn how to handle and visualise data with pandas and matplotlib",
-    "I want to master error handling and debugging techniques in Python"
-  ]
+    "I want to master error handling and debugging techniques in Python",
+  ];
 
   const handleSupriseClick = () => {
     if (mode == "code") {
-      setPrompt(supriseBuilds[Math.floor(Math.random() * supriseBuilds.length)]);
+      setPrompt(
+        supriseBuilds[Math.floor(Math.random() * supriseBuilds.length)]
+      );
     } else {
-      setPrompt(supriseCurriculums[Math.floor(Math.random() * supriseBuilds.length)]);
+      setPrompt(
+        supriseCurriculums[Math.floor(Math.random() * supriseBuilds.length)]
+      );
     }
-  }
+  };
 
   useEffect(() => {
     setIsVisible(true);
@@ -133,7 +134,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                     setGeneratedCurriculum(fullContent);
                   }
                 }
-              } catch (e) {
+              } catch (_e) {
                 // Ignore parsing errors for incomplete chunks
               }
             }
@@ -157,7 +158,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
   // Function to clean markdown code blocks and extract Python code
   const cleanCodeBlock = (code: string): string => {
     // Remove markdown code block syntax
-    let cleaned = code
+    const cleaned = code
       .replace(/^```python\s*/i, "") // Remove opening ```python
       .replace(/^```\s*/gm, "") // Remove opening ```
       .replace(/\s*```\s*$/g, "") // Remove closing ```
@@ -198,81 +199,89 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
 
         {/* Interactive Prompt Box */}
         <div className="relative w-full max-w-3xl mx-auto mt-16 mb-16">
-            <div className="bg-gray-800 rounded-2xl border border-gray-700 px-4 py-2">
-              {/* Input field */}
-              <div className="flex items-center mb-1">
-                <Input
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={
-                    mode === "curriculum"
-                      ? "Try: 'I want to learn data analysis with Python'"
-                      : "Try: 'Create a function to check if a number is prime'"
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 px-4 py-2">
+            {/* Input field */}
+            <div className="flex items-center mb-1">
+              <Input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={
+                  mode === "curriculum"
+                    ? "Try: &apos;I want to learn data analysis with Python&apos;"
+                    : "Try: &apos;Create a function to check if a number is prime&apos;"
+                }
+                onKeyPress={(e) => e.key === "Enter" && generateContent()}
+                disabled={isGenerating}
+                className="flex-1 bg-transparent border-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg px-0"
+              />
+            </div>
+
+            {/* All buttons at bottom */}
+            <div className="flex items-center justify-between pt-0">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={mode === "curriculum" ? "default" : "ghost"}
+                  onClick={() => setMode("curriculum")}
+                  className={
+                    mode == "curriculum"
+                      ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"
+                      : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"
                   }
-                  onKeyPress={(e) => e.key === "Enter" && generateContent()}
-                  disabled={isGenerating}
-                  className="flex-1 bg-transparent border-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg px-0"
-                />
+                  size="sm"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Curriculum
+                </Button>
+                <Button
+                  variant={mode === "code" ? "default" : "ghost"}
+                  onClick={() => setMode("code")}
+                  className={
+                    mode == "code"
+                      ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"
+                      : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"
+                  }
+                  size="sm"
+                >
+                  <Hammer className="w-4 h-4" />
+                  Build
+                </Button>
               </div>
 
-              {/* All buttons at bottom */}
-              <div className="flex items-center justify-between pt-0">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={mode === "curriculum" ? "default" : "ghost"}
-                    onClick={() => setMode("curriculum")}
-                    className={mode == "curriculum" ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300" : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"}
-                    size="sm"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Curriculum
-                  </Button>
-                  <Button
-                    variant={mode === "code" ? "default" : "ghost"}
-                    onClick={() => setMode("code")}
-                    className={mode == "code" ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300" : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"}
-                    size="sm"
-                  >
-                    <Hammer className="w-4 h-4" />
-                    Build
-                  </Button>
-                </div>
-
-                {/* Audio button */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
-                  >
-                    <Mic className="w-5 h-5" />
-                  </Button>
-                  {/* Submission Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
-                    onClick={generateContent}
-                    disabled={!prompt.trim() || isGenerating}
-                  >
-                    <ArrowUp className="w-5 h-5" />
-                  </Button>
-                </div>
+              {/* Audio button */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
+                >
+                  <Mic className="w-5 h-5" />
+                </Button>
+                {/* Submission Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
+                  onClick={generateContent}
+                  disabled={!prompt.trim() || isGenerating}
+                >
+                  <ArrowUp className="w-5 h-5" />
+                </Button>
               </div>
             </div>
+          </div>
 
-            {/* Surprise Me button below search */}
-            <div className="mt-4 text-center">
-              <Button
-                variant="ghost"
-                className="text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2 mx-auto"
-                onClick={handleSupriseClick}
-              >
-                <Sparkles className="w-4 h-4" />
-                Surprise me
-              </Button>
-            </div>
-          </div>     
+          {/* Surprise Me button below search */}
+          <div className="mt-4 text-center">
+            <Button
+              variant="ghost"
+              className="text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2 mx-auto"
+              onClick={handleSupriseClick}
+            >
+              <Sparkles className="w-4 h-4" />
+              Surprise me
+            </Button>
+          </div>
+        </div>
 
         {/* Generated Code Display / Demo */}
         <div
@@ -347,15 +356,15 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                         YOU SAY:
                       </div>
                       <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg text-sm">
-                        "Create a function that calculates fibonacci numbers
-                        efficiently, and show me how to use it"
+                        &ldquo;Create a function that calculates fibonacci
+                        numbers efficiently, and show me how to use it&rdquo;
                       </div>
                       <div className="text-xs text-purple-600 font-medium mt-4 mb-2">
                         AI DELIVERS:
                       </div>
                       <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg text-sm">
-                        "I'll create an optimized fibonacci function using
-                        memoization..."
+                        &ldquo;I&apos;ll create an optimized fibonacci function
+                        using memoization...&rdquo;
                       </div>
                     </div>
                   </div>
@@ -443,14 +452,15 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                       YOU SAY:
                     </div>
                     <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg text-sm">
-                      "Create a curriculum for learning Python programming"
+                      &ldquo;Create a curriculum for learning Python
+                      programming&rdquo;
                     </div>
                     <div className="text-xs text-purple-600 font-medium mt-4 mb-2">
                       AI DELIVERS:
                     </div>
                     <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg text-sm">
-                      "I'll create a 5-step curriculum for learning Python
-                      programming"
+                      &ldquo;I&apos;ll create a 5-step curriculum for learning
+                      Python programming&rdquo;
                     </div>
                   </div>
                 </div>

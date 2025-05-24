@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, User, X, Minus, Square } from "lucide-react";
+import { Bot, Send, User, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface Message {
@@ -158,7 +158,7 @@ export function AIAssistant({
                     return newMessages;
                   });
                 }
-              } catch (e) {
+              } catch {
                 // Ignore parsing errors for incomplete chunks
               }
             }
@@ -191,9 +191,7 @@ export function AIAssistant({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium">
-                Code Tutor
-              </span>
+              <span className="text-sm font-medium">Code Tutor</span>
             </div>
             <div className="flex items-center gap-1">
               <Button

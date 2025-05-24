@@ -1,6 +1,5 @@
 "use client";
 
-import { Code } from "lucide-react";
 import Link from "next/link";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -36,8 +35,8 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Logo & Description */}
-            <div className="md:col-span-2">
-              <Link
+          <div className="md:col-span-2">
+            <Link
               href="/"
               className="flex items-center gap-2 font-bold text-xl group"
             >
@@ -47,7 +46,9 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-muted-foreground mb-4 max-w-md">
-              The only modern solution for teaching <s>developers</s> <strong>everyone</strong> how to build what they actually want, right now.
+              The only modern solution for teaching <s>developers</s>{" "}
+              <strong>everyone</strong> how to build what they actually want,
+              right now.
             </p>
           </div>
 
