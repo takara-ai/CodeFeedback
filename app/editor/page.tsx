@@ -4,7 +4,7 @@ import { CodeEditor } from "@/components/code-editor"
 import { AIAssistant } from "@/components/ai-assistant"
 import { Terminal } from "@/components/terminal"
 import { Toolbar } from "@/components/toolbar"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 export default function EditorPage() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
@@ -30,48 +30,53 @@ print(f"Original: {numbers}")
 print(f"Squared: {squared}")`)
   const [output, setOutput] = useState("")
   const [isRunning, setIsRunning] = useState(false)
+  const [pyodide, setPyodide] = useState<any>(null);
+
+  
+  useEffect(() => {
+    const loadPyodideFromCDN = async () => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
+      script.onload = async () => {
+        // @ts-ignore
+        const py = await window.loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
+        });
+        setPyodide(py);
+      };
+      document.body.appendChild(script);
+    };
+
+    loadPyodideFromCDN();
+  }, []);
 
   const runCode = async () => {
+    if (!pyodide) return;
     setIsRunning(true)
     try {
-      // Simple Python code execution simulation
-      // In a real implementation, you'd send this to a Python backend
-      const lines = code.split("\n")
-      const outputs: string[] = []
-
-      // Simulate some basic Python execution
-      if (code.includes('print(greet("World"))')) {
-        outputs.push("Hello, World!")
-      }
-      if (code.includes("print(add(5, 3))")) {
-        outputs.push("8")
-      }
-      if (code.includes('print(f"Original: {numbers}")')) {
-        outputs.push("Original: [1, 2, 3, 4, 5]")
-      }
-      if (code.includes('print(f"Squared: {squared}")')) {
-        outputs.push("Squared: [1, 4, 9, 16, 25]")
-      }
-
-      // Look for other print statements
-      lines.forEach((line) => {
-        const trimmed = line.trim()
-        if (trimmed.startsWith("print(") && !outputs.some((o) => line.includes(o))) {
-          // Simple evaluation for basic print statements
-          if (trimmed.includes('"') || trimmed.includes("'")) {
-            const match = trimmed.match(/print$$["'](.+?)["']$$/)
-            if (match) outputs.push(match[1])
-          }
-        }
-      })
-
-      setOutput(outputs.join("\n") || "Code executed successfully!")
-    } catch (error) {
-      setOutput(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
-    } finally {
+      // load packages here
+      await pyodide.loadPackage("numpy");
+      await pyodide.loadPackage("matplotlib");
+      const wrappedCode = `
+import sys
+from io import StringIO
+stdout = sys.stdout
+sys.stdout = StringIO()
+try:
+    exec(\"\"\"${code}\"\"\")
+    result = sys.stdout.getvalue()
+finally:
+    sys.stdout = stdout
+result
+    `;
+      const result = await pyodide.runPythonAsync(wrappedCode);
+      setOutput(String(result));
+    } catch (err: any) {
+      setOutput(err.toString());
+    }finally {
       setIsRunning(false)
     }
-  }
+  };
 
   const resetCode = () => {
     setCode(`# Welcome to the Python playground
