@@ -1,8 +1,8 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowLeft, ArrowRight, BookOpen, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowLeft, ArrowRight, BookOpen, Clock } from "lucide-react";
 
 export function LessonContent() {
   return (
@@ -29,10 +29,13 @@ export function LessonContent() {
         <div className="p-6 max-w-3xl">
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold mb-4">Understanding Functions</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                Understanding Functions
+              </h2>
               <p className="text-muted-foreground leading-relaxed">
-                Functions are one of the fundamental building blocks in JavaScript. A function is a reusable block of
-                code designed to perform a particular task.
+                Functions are one of the fundamental building blocks in
+                JavaScript. A function is a reusable block of code designed to
+                perform a particular task.
               </p>
             </div>
 
@@ -51,7 +54,10 @@ export function LessonContent() {
                   </div>
                   <div className="ml-4">
                     <span className="text-blue-600">return</span>
-                    <span className="text-green-600"> "Hello, " + name + "!"</span>
+                    <span className="text-green-600">
+                      {" "}
+                      &ldquo;Hello, &rdquo; + name + &ldquo;!&rdquo;
+                    </span>
                     <span className="text-gray-600">;</span>
                   </div>
                   <div className="text-gray-600">&#125;</div>
@@ -65,20 +71,22 @@ export function LessonContent() {
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
                   <span>
-                    <strong>Parameters:</strong> Variables that act as placeholders for values passed to the function
+                    <strong>Parameters:</strong> Variables that act as
+                    placeholders for values passed to the function
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
                   <span>
-                    <strong>Return Statement:</strong> Specifies the value that the function should output
+                    <strong>Return Statement:</strong> Specifies the value that
+                    the function should output
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
                   <span>
-                    <strong>Function Scope:</strong> Variables declared inside a function are only accessible within
-                    that function
+                    <strong>Function Scope:</strong> Variables declared inside a
+                    function are only accessible within that function
                   </span>
                 </li>
               </ul>
@@ -86,13 +94,18 @@ export function LessonContent() {
 
             <Card className="bg-blue-50 border-blue-200">
               <CardHeader>
-                <CardTitle className="text-lg text-blue-800">Try It Yourself</CardTitle>
+                <CardTitle className="text-lg text-blue-800">
+                  Try It Yourself
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-blue-700">
                   In the code editor on the right, create a function called{" "}
-                  <code className="bg-blue-100 px-1 rounded">calculateArea</code> that takes two parameters (length and
-                  width) and returns their product.
+                  <code className="bg-blue-100 px-1 rounded">
+                    calculateArea
+                  </code>{" "}
+                  that takes two parameters (length and width) and returns their
+                  product.
                 </p>
               </CardContent>
             </Card>
@@ -114,5 +127,5 @@ export function LessonContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }

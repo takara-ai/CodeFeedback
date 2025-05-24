@@ -1,15 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Bot,
-  TerminalIcon,
-  Play,
-  Save,
-  RotateCcw,
-  ArrowLeft,
-  Code,
-} from "lucide-react";
+import { Bot, Play, Save, RotateCcw, ArrowLeft, Code } from "lucide-react";
 import Link from "next/link";
 
 interface ToolbarProps {
@@ -100,7 +92,7 @@ export function Toolbar({
           </Button>
 
           {/* Separator */}
-          <div className="w-px h-4 bg-border mx-1"></div> 
+          <div className="w-px h-4 bg-border mx-1"></div>
           <Button
             size="sm"
             variant="ghost"

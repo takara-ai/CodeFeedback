@@ -8,10 +8,16 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, ArrowLeft, ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
 
+interface CurriculumStep {
+  title: string;
+  learn: string;
+  prompt: string;
+  code: string;
+}
+
 function CurriculumContent() {
-  const [curriculum, setCurriculum] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [steps, setSteps] = useState<any[]>([]);
+  const [steps, setSteps] = useState<CurriculumStep[]>([]);
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
 
@@ -22,11 +28,9 @@ function CurriculumContent() {
     if (curriculumData) {
       try {
         const decodedCurriculum = decodeURIComponent(curriculumData);
-        setCurriculum(decodedCurriculum);
         parseCurriculum(decodedCurriculum);
       } catch (error) {
         console.error("Error decoding curriculum:", error);
-        setCurriculum("Error loading curriculum");
       }
     }
   }, [searchParams]);
@@ -35,11 +39,12 @@ function CurriculumContent() {
     const lines = content.split("\n");
     let parsedTitle = "";
     let parsedGoal = "";
-    const parsedSteps: any[] = [];
+    const parsedSteps: CurriculumStep[] = [];
 
-    let currentStepData: any = null;
-    let inCodeBlock = false;
+    let currentStepData: CurriculumStep | null = null;
     let currentCode = "";
+
+    let inCodeBlock = false;
 
     for (const line of lines) {
       if (line.startsWith("# Learning Path:")) {
