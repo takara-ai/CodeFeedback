@@ -1,5 +1,6 @@
 # NextJS
 
+.token.txt
 node_modules
 target
 dist
