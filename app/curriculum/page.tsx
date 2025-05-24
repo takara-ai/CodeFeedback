@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { CodeEditor } from "@/components/code-editor";
 import { BookOpen, ArrowLeft, ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ function CurriculumContent() {
   const [steps, setSteps] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
+  const [currentCode, setCurrentCode] = useState(""); // For CodeEditor
 
   const searchParams = useSearchParams();
 
@@ -39,7 +41,7 @@ function CurriculumContent() {
 
     let currentStepData: any = null;
     let inCodeBlock = false;
-    let currentCode = "";
+    let tempCode = ""; // Renamed to avoid conflict
 
     for (const line of lines) {
       if (line.startsWith("# Learning Path:")) {
@@ -48,7 +50,7 @@ function CurriculumContent() {
         parsedGoal = line.replace("**Goal:**", "").trim();
       } else if (line.startsWith("## Step ")) {
         if (currentStepData) {
-          currentStepData.code = currentCode.trim();
+          currentStepData.code = tempCode.trim();
           parsedSteps.push(currentStepData);
         }
         currentStepData = {
@@ -57,7 +59,7 @@ function CurriculumContent() {
           prompt: "",
           code: "",
         };
-        currentCode = "";
+        tempCode = "";
       } else if (line.startsWith("**Learn:**") && currentStepData) {
         currentStepData.learn = line.replace("**Learn:**", "").trim();
       } else if (line.startsWith("**Prompt:**") && currentStepData) {
@@ -67,22 +69,38 @@ function CurriculumContent() {
       } else if (line.startsWith("```") && inCodeBlock) {
         inCodeBlock = false;
       } else if (inCodeBlock) {
-        currentCode += line + "\n";
+        tempCode += line + "\n";
       }
     }
 
     if (currentStepData) {
-      currentStepData.code = currentCode.trim();
+      currentStepData.code = tempCode.trim();
       parsedSteps.push(currentStepData);
     }
 
     setTitle(parsedTitle);
     setGoal(parsedGoal);
     setSteps(parsedSteps);
+
+    // Set the initial code for the first step
+    if (parsedSteps.length > 0 && parsedSteps[0].code) {
+      setCurrentCode(parsedSteps[0].code);
+    }
   };
 
   const progressPercentage =
     steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
+
+  // Update current code when step changes
+  useEffect(() => {
+    if (steps.length > 0 && steps[currentStep] && steps[currentStep].code) {
+      setCurrentCode(steps[currentStep].code);
+    }
+  }, [currentStep, steps]);
+
+  const navigateToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +140,7 @@ function CurriculumContent() {
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Goal
                   </h3>
-                  <p className="text-sm">{goal}</p>
+                  <p className="text-sm break-words">{goal}</p>
                 </div>
               )}
 
@@ -143,7 +161,7 @@ function CurriculumContent() {
                     variant={index === currentStep ? "default" : "ghost"}
                     size="sm"
                     className="w-full justify-start h-auto p-3"
-                    onClick={() => setCurrentStep(index)}
+                    onClick={() => navigateToStep(index)}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <div className="flex-shrink-0">
@@ -157,8 +175,10 @@ function CurriculumContent() {
                           <div className="w-5 h-5 border-2 border-muted-foreground rounded-full"></div>
                         )}
                       </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-sm">{step.title}</div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-medium text-sm break-words">
+                          {step.title}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           Step {index + 1}
                         </div>
@@ -175,10 +195,10 @@ function CurriculumContent() {
             {steps.length > 0 && steps[currentStep] && (
               <div className="bg-card rounded-lg border p-8">
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2">
+                  <h2 className="text-2xl font-bold mb-2 break-words">
                     {steps[currentStep].title}
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground break-words">
                     {steps[currentStep].learn}
                   </p>
                 </div>
@@ -189,7 +209,7 @@ function CurriculumContent() {
                       AI Prompt for This Step
                     </h3>
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <p className="text-blue-800 dark:text-blue-200">
+                      <p className="text-blue-800 dark:text-blue-200 break-words whitespace-pre-wrap">
                         {steps[currentStep].prompt}
                       </p>
                     </div>
@@ -200,15 +220,20 @@ function CurriculumContent() {
                       <h3 className="text-lg font-semibold mb-3">
                         Expected Code Example
                       </h3>
-                      <pre className="bg-gray-50 dark:bg-gray-900 border rounded-lg p-4 overflow-x-auto">
-                        <code className="text-sm">
-                          {steps[currentStep].code}
-                        </code>
-                      </pre>
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="h-64">
+                          <CodeEditor
+                            code={currentCode}
+                            setCode={setCurrentCode}
+                            output=""
+                            language="python"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 flex-wrap">
                     <Button asChild>
                       <Link
                         href={`/editor?prompt=${encodeURIComponent(
@@ -228,7 +253,7 @@ function CurriculumContent() {
                 <div className="flex justify-between mt-8 pt-6 border-t">
                   <Button
                     variant="outline"
-                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                    onClick={() => navigateToStep(Math.max(0, currentStep - 1))}
                     disabled={currentStep === 0}
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -236,7 +261,7 @@ function CurriculumContent() {
                   </Button>
                   <Button
                     onClick={() =>
-                      setCurrentStep(
+                      navigateToStep(
                         Math.min(steps.length - 1, currentStep + 1)
                       )
                     }
