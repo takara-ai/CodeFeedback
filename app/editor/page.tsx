@@ -2,7 +2,6 @@
 
 import { CodeEditor } from "@/components/code-editor";
 import { AIAssistant } from "@/components/ai-assistant";
-import { Terminal } from "@/components/terminal";
 import { Toolbar } from "@/components/toolbar";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -10,9 +9,7 @@ import type { PyodideInterface } from "@/types/pyodide";
 
 function EditorContent() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(true);
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [assistantWidth, setAssistantWidth] = useState(400);
-  const [terminalHeight, setTerminalHeight] = useState(200);
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
@@ -250,12 +247,10 @@ result`;
       {/* Top Toolbar */}
       <Toolbar
         onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
-        onToggleTerminal={() => setIsTerminalOpen(!isTerminalOpen)}
         onRunCode={runCode}
         onResetCode={resetCode}
         onSaveCode={saveCode}
         isAssistantOpen={isAssistantOpen}
-        isTerminalOpen={isTerminalOpen}
         isRunning={isRunning}
         pyodideLoading={pyodideLoading}
         pyodideError={pyodideError}
@@ -274,12 +269,7 @@ result`;
         >
           {/* Code Editor */}
           <div
-            className="flex-1"
-            style={{
-              height: isTerminalOpen
-                ? `calc(100% - ${terminalHeight}px)`
-                : "100%",
-            }}
+            className="flex-1 h-full"
           >
             <CodeEditor
               code={code}
@@ -288,16 +278,6 @@ result`;
               language="python"
             />
           </div>
-
-          {/* Terminal Panel */}
-          {isTerminalOpen && (
-            <Terminal
-              height={terminalHeight}
-              onHeightChange={setTerminalHeight}
-              onClose={() => setIsTerminalOpen(false)}
-              output={output}
-            />
-          )}
         </div>
 
         {/* AI Assistant Panel */}

@@ -192,16 +192,10 @@ export function AIAssistant({
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium">
-                Language → Code Assistant
+                Code Tutor
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                <Minus className="w-3 h-3" />
-              </Button>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                <Square className="w-3 h-3" />
-              </Button>
               <Button
                 size="sm"
                 variant="ghost"

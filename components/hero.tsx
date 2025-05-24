@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  ArrowRight,
-  Play,
+  Mic,
+  ArrowUp,
+  BookOpen,
+  Hammer,
   Sparkles,
   MessageSquare,
   Send,
@@ -160,7 +162,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
 
         {/* Headline */}
         <div
-          className={`transform transition-all duration-1000 delay-200 ${
+          className={`transform transition-all duration-1000 delay-200  mt-28 ${
             isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
@@ -174,80 +176,82 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
           </h1>
         </div>
 
-        {/* Subheadline */}
-        <div
-          className={`transform transition-all duration-1000 delay-400 ${
-            isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-          }`}
-        >
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            Get AI-generated learning paths tailored to your goals, or dive
-            straight into code generation. Master prompt engineering, natural
-            language programming, and collaborative coding with AI. The future
-            belongs to those who can speak to machines.
-          </p>
-        </div>
-
         {/* Interactive Prompt Box */}
-        <div
-          className={`transform transition-all duration-1000 delay-600 ${
-            isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-          }`}
-        >
-          <div className="max-w-2xl mx-auto mb-8">
-            {/* Mode Selector */}
-            <div className="flex gap-2 mb-4 justify-center">
+        <div className="relative w-full max-w-3xl mx-auto mt-16 mb-16">
+            <div className="bg-gray-800 rounded-2xl border border-gray-700 px-4 py-2">
+              {/* Input field */}
+              <div className="flex items-center mb-1">
+                <Input
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={
+                    mode === "curriculum"
+                      ? "Try: 'I want to learn data analysis with Python'"
+                      : "Try: 'Create a function to check if a number is prime'"
+                  }
+                  onKeyPress={(e) => e.key === "Enter" && generateContent()}
+                  disabled={isGenerating}
+                  className="flex-1 bg-transparent border-none text-gray-100 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg px-0"
+                />
+              </div>
+
+              {/* All buttons at bottom */}
+              <div className="flex items-center justify-between pt-0">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={mode === "curriculum" ? "default" : "ghost"}
+                    onClick={() => setMode("curriculum")}
+                    className={mode == "curriculum" ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300" : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"}
+                    size="sm"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Curriculum
+                  </Button>
+                  <Button
+                    variant={mode === "code" ? "default" : "ghost"}
+                    onClick={() => setMode("code")}
+                    className={mode == "code" ? "bg-white text-black hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300" : "text-gray-300 hover:text-white hover:bg-gray-700 flex items-center gap-2 px-3 py-2 transition-all duration-300"}
+                    size="sm"
+                  >
+                    <Hammer className="w-4 h-4" />
+                    Build
+                  </Button>
+                </div>
+
+                {/* Audio button */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
+                  >
+                    <Mic className="w-5 h-5" />
+                  </Button>
+                  {/* Submission Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
+                    onClick={generateContent}
+                    disabled={!prompt.trim() || isGenerating}
+                  >
+                    <ArrowUp className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Surprise Me button below search */}
+            <div className="mt-4 text-center">
               <Button
-                variant={mode === "curriculum" ? "default" : "outline"}
-                onClick={() => setMode("curriculum")}
-                className="transition-all duration-300"
+                variant="ghost"
+                className="text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-2 mx-auto"
               >
-                Generate Curriculum
-              </Button>
-              <Button
-                variant={mode === "code" ? "default" : "outline"}
-                onClick={() => setMode("code")}
-                className="transition-all duration-300"
-              >
-                Generate Code
+                <Sparkles className="w-4 h-4" />
+                Surprise me
               </Button>
             </div>
-            <div className="flex gap-2 mb-4">
-              <Input
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={
-                  mode === "curriculum"
-                    ? "Try: 'I want to learn data analysis with Python'"
-                    : "Try: 'Create a function to check if a number is prime'"
-                }
-                className="text-lg py-6 px-6 flex-1"
-                onKeyPress={(e) => e.key === "Enter" && generateContent()}
-                disabled={isGenerating}
-              />
-              <Button
-                size="lg"
-                onClick={generateContent}
-                disabled={!prompt.trim() || isGenerating}
-                className="px-6 py-6 hover:scale-105 transition-all duration-300"
-              >
-                {isGenerating ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating...
-                  </div>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 mr-2" />
-                    {mode === "curriculum"
-                      ? "Generate Curriculum"
-                      : "Generate Code"}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
+          </div>     
 
         {/* Generated Code Display / Demo */}
         <div
