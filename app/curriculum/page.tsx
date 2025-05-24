@@ -9,13 +9,21 @@ import { CodeEditor } from "@/components/code-editor";
 import { BookOpen, ArrowLeft, ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
 
+interface Step {
+  title: string;
+  learn: string;
+  prompt: string;
+  code: string;
+}
+
 function CurriculumContent() {
   const [curriculum, setCurriculum] = useState<string>("");
   const [currentStep, setCurrentStep] = useState(0);
-  const [steps, setSteps] = useState<any[]>([]);
+  const [steps, setSteps] = useState<Step[]>([]);
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
   const [currentCode, setCurrentCode] = useState(""); // For CodeEditor
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const searchParams = useSearchParams();
 
@@ -37,9 +45,9 @@ function CurriculumContent() {
     const lines = content.split("\n");
     let parsedTitle = "";
     let parsedGoal = "";
-    const parsedSteps: any[] = [];
+    const parsedSteps: Step[] = [];
 
-    let currentStepData: any = null;
+    let currentStepData: Partial<Step> | null = null;
     let inCodeBlock = false;
     let tempCode = ""; // Renamed to avoid conflict
 
@@ -51,7 +59,7 @@ function CurriculumContent() {
       } else if (line.startsWith("## Step ")) {
         if (currentStepData) {
           currentStepData.code = tempCode.trim();
-          parsedSteps.push(currentStepData);
+          parsedSteps.push(currentStepData as Step);
         }
         currentStepData = {
           title: line.replace(/## Step \d+:\s*/, "").trim(),
@@ -75,7 +83,7 @@ function CurriculumContent() {
 
     if (currentStepData) {
       currentStepData.code = tempCode.trim();
-      parsedSteps.push(currentStepData);
+      parsedSteps.push(currentStepData as Step);
     }
 
     setTitle(parsedTitle);
@@ -100,6 +108,26 @@ function CurriculumContent() {
 
   const navigateToStep = (stepIndex: number) => {
     setCurrentStep(stepIndex);
+  };
+
+  const markStepComplete = () => {
+    const newCompleted = new Set(completedSteps);
+    newCompleted.add(currentStep);
+    setCompletedSteps(newCompleted);
+
+    // Check if all steps are completed
+    if (newCompleted.size === steps.length) {
+      // Navigate to congratulations page
+      const curriculumTitle = encodeURIComponent(title);
+      window.location.href = `/congratulations?title=${curriculumTitle}&steps=${steps.length}`;
+    } else if (currentStep < steps.length - 1) {
+      // Auto-advance to next step
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const isStepCompleted = (stepIndex: number) => {
+    return completedSteps.has(stepIndex);
   };
 
   return (
@@ -133,14 +161,16 @@ function CurriculumContent() {
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Sidebar - Curriculum Overview */}
           <div className="lg:col-span-1">
-            <div className="bg-card rounded-lg border p-6 sticky top-8">
+            <div className="bg-card rounded-lg border p-6 sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
               <h2 className="font-semibold mb-4">Learning Path</h2>
               {goal && (
-                <div className="mb-6">
+                <div className="mb-6 min-w-0">
                   <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Goal
                   </h3>
-                  <p className="text-sm break-words">{goal}</p>
+                  <p className="text-sm break-all whitespace-normal leading-relaxed">
+                    {goal}
+                  </p>
                 </div>
               )}
 
@@ -155,7 +185,7 @@ function CurriculumContent() {
               </div>
 
               <div className="space-y-2">
-                {steps.map((step, index) => (
+                {steps.map((step: Step, index: number) => (
                   <Button
                     key={index}
                     variant={index === currentStep ? "default" : "ghost"}
@@ -165,7 +195,7 @@ function CurriculumContent() {
                   >
                     <div className="flex items-center gap-3 w-full">
                       <div className="flex-shrink-0">
-                        {index < currentStep ? (
+                        {isStepCompleted(index) ? (
                           <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                             <div className="w-2 h-2 bg-white rounded-full"></div>
                           </div>
@@ -195,30 +225,43 @@ function CurriculumContent() {
             {steps.length > 0 && steps[currentStep] && (
               <div className="bg-card rounded-lg border p-8">
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold mb-2 break-words">
+                  <h2 className="text-2xl font-bold mb-4 break-words">
                     {steps[currentStep].title}
                   </h2>
-                  <p className="text-muted-foreground break-words">
-                    {steps[currentStep].learn}
-                  </p>
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">
-                      AI Prompt for This Step
-                    </h3>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <p className="text-blue-800 dark:text-blue-200 break-words whitespace-pre-wrap">
-                        {steps[currentStep].prompt}
-                      </p>
+                  {/* Learning Content */}
+                  {steps[currentStep].learn && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-blue-600">
+                        📚 What You'll Learn
+                      </h3>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <p className="text-blue-800 dark:text-blue-200 break-words whitespace-pre-wrap leading-relaxed">
+                          {steps[currentStep].learn}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {steps[currentStep].prompt && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3 text-orange-600">
+                        🤖 AI Prompt for Practice
+                      </h3>
+                      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                        <p className="text-orange-800 dark:text-orange-200 break-words whitespace-pre-wrap">
+                          {steps[currentStep].prompt}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {steps[currentStep].code && (
                     <div>
-                      <h3 className="text-lg font-semibold mb-3">
-                        Expected Code Example
+                      <h3 className="text-lg font-semibold mb-3 text-gray-600">
+                        📝 Example Code
                       </h3>
                       <div className="border rounded-lg overflow-hidden">
                         <div className="h-64">
@@ -243,6 +286,20 @@ function CurriculumContent() {
                         Start Coding in Editor
                       </Link>
                     </Button>
+                    {!isStepCompleted(currentStep) && (
+                      <Button
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={markStepComplete}
+                      >
+                        ✅ Mark Step Complete
+                      </Button>
+                    )}
+                    {isStepCompleted(currentStep) && (
+                      <Badge variant="secondary" className="px-4 py-2">
+                        ✅ Completed
+                      </Badge>
+                    )}
                     <Button variant="outline" asChild>
                       <Link href="/">Try Different Curriculum</Link>
                     </Button>

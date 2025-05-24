@@ -12,7 +12,7 @@ import {
   Code2,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent, KeyboardEvent } from "react";
 
 export function Hero() {
   const [isVisible, setIsVisible] = useState(false);
@@ -48,17 +48,17 @@ Return your response in this EXACT markdown format:
 
 # Learning Path: [Title]
 
-**Goal:** [What they'll achieve]
+**Goal:** [What they'll achieve - MAXIMUM 3 words]
 
 ## Step 1: [Step Title]
-**Learn:** [What they'll learn]
+**Learn:** [Single concise paragraph explaining what they'll learn, why it matters, and the key concept - keep it practical and focused]
 **Prompt:** [Specific AI prompt for this step]
 \`\`\`python
 # Expected code example they'll create
 \`\`\`
 
 ## Step 2: [Step Title]
-**Learn:** [What they'll learn]  
+**Learn:** [Single concise paragraph explaining what they'll learn, why it matters, and the key concept - keep it practical and focused]
 **Prompt:** [Specific AI prompt for this step]
 \`\`\`python
 # Expected code example they'll create
@@ -66,7 +66,7 @@ Return your response in this EXACT markdown format:
 
 [Continue for all 5 steps]
 
-Each step should build on the previous one. Focus on practical, hands-on Python programming.`;
+Each step should build on the previous one. Focus on practical, hands-on Python programming with clear learning progression. Keep explanations concise but comprehensive. The Goal must be exactly 3 words or fewer - be concise and impactful.`;
 
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -149,6 +149,16 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
     return cleaned;
   };
 
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setPrompt(e.target.value);
+  };
+
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      generateContent();
+    }
+  };
+
   return (
     <section className="py-20 md:py-32 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 overflow-hidden">
       <div className="container mx-auto px-4 text-center relative">
@@ -215,14 +225,14 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
             <div className="flex gap-2 mb-4">
               <Input
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={handleInputChange}
                 placeholder={
                   mode === "curriculum"
                     ? "Try: 'I want to learn data analysis with Python'"
                     : "Try: 'Create a function to check if a number is prime'"
                 }
                 className="text-lg py-6 px-6 flex-1"
-                onKeyPress={(e) => e.key === "Enter" && generateContent()}
+                onKeyPress={handleKeyPress}
                 disabled={isGenerating}
               />
               <Button
