@@ -16,17 +16,31 @@ interface AIAssistantProps {
   width: number;
   onWidthChange: (width: number) => void;
   onClose: () => void;
+  initialPrompt?: string;
 }
 
 export function AIAssistant({
   width,
   onWidthChange,
   onClose,
+  initialPrompt,
 }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isResizing, setIsResizing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Set initial prompt when component mounts
+  useEffect(() => {
+    if (initialPrompt) {
+      try {
+        const decodedPrompt = decodeURIComponent(initialPrompt);
+        setInput(decodedPrompt);
+      } catch (error) {
+        console.error("Error decoding initial prompt:", error);
+      }
+    }
+  }, [initialPrompt]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

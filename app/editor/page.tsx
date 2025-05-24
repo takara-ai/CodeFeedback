@@ -45,6 +45,8 @@ print("Ready to build with language! Open the AI Assistant to start →")`;
   // Initialize code from URL params or default
   useEffect(() => {
     const generatedCode = searchParams.get("code");
+    const initialPrompt = searchParams.get("prompt");
+
     if (generatedCode) {
       try {
         const decodedCode = decodeURIComponent(generatedCode);
@@ -57,6 +59,14 @@ print("Ready to build with language! Open the AI Assistant to start →")`;
       }
     } else {
       setCode(defaultCode);
+    }
+
+    // If there's an initial prompt, open the AI assistant and set it up
+    if (initialPrompt) {
+      setIsAssistantOpen(true);
+      setOutput(
+        "AI Assistant opened with your learning prompt. Start by asking the AI for help!"
+      );
     }
   }, [searchParams, defaultCode]);
 
@@ -296,6 +306,7 @@ result`;
             width={assistantWidth}
             onWidthChange={setAssistantWidth}
             onClose={() => setIsAssistantOpen(false)}
+            initialPrompt={searchParams.get("prompt") || undefined}
           />
         )}
       </div>

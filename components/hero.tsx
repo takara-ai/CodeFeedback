@@ -18,22 +18,55 @@ export function Hero() {
   const [isVisible, setIsVisible] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
+  const [generatedCurriculum, setGeneratedCurriculum] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mode, setMode] = useState<"code" | "curriculum">("curriculum");
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const generateCode = async () => {
+  const generateContent = async () => {
     if (!prompt.trim() || isGenerating) return;
 
     setIsGenerating(true);
-    setGeneratedCode("");
+    if (mode === "code") {
+      setGeneratedCode("");
+    } else {
+      setGeneratedCurriculum("");
+    }
 
     try {
-      const codePrompt = `You are a Python code generator. Generate ONLY Python code based on the user's request. Do not include explanations, comments, or any text outside of the code. Do not wrap the code in markdown code blocks. Respond with clean, functional Python code only.
+      const contentPrompt =
+        mode === "code"
+          ? `You are a Python code generator. Generate ONLY Python code based on the user's request. Do not include explanations, comments, or any text outside of the code. Do not wrap the code in markdown code blocks. Respond with clean, functional Python code only.
 
-User request: ${prompt}`;
+User request: ${prompt}`
+          : `You are a personalized Python programming instructor. Create a 5-step learning curriculum based on this learning goal: "${prompt}"
+
+Return your response in this EXACT markdown format:
+
+# Learning Path: [Title]
+
+**Goal:** [What they'll achieve]
+
+## Step 1: [Step Title]
+**Learn:** [What they'll learn]
+**Prompt:** [Specific AI prompt for this step]
+\`\`\`python
+# Expected code example they'll create
+\`\`\`
+
+## Step 2: [Step Title]
+**Learn:** [What they'll learn]  
+**Prompt:** [Specific AI prompt for this step]
+\`\`\`python
+# Expected code example they'll create
+\`\`\`
+
+[Continue for all 5 steps]
+
+Each step should build on the previous one. Focus on practical, hands-on Python programming.`;
 
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -41,7 +74,7 @@ User request: ${prompt}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [{ role: "user", content: codePrompt }],
+          messages: [{ role: "user", content: contentPrompt }],
         }),
       });
 
@@ -72,7 +105,11 @@ User request: ${prompt}`;
                 const parsed = JSON.parse(data);
                 if (parsed.content) {
                   fullContent += parsed.content;
-                  setGeneratedCode(cleanCodeBlock(fullContent));
+                  if (mode === "code") {
+                    setGeneratedCode(cleanCodeBlock(fullContent));
+                  } else {
+                    setGeneratedCurriculum(fullContent);
+                  }
                 }
               } catch (e) {
                 // Ignore parsing errors for incomplete chunks
@@ -82,8 +119,14 @@ User request: ${prompt}`;
         }
       }
     } catch (error) {
-      console.error("Error generating code:", error);
-      setGeneratedCode("# Error generating code. Please try again.");
+      console.error("Error generating content:", error);
+      if (mode === "code") {
+        setGeneratedCode("# Error generating code. Please try again.");
+      } else {
+        setGeneratedCurriculum(
+          "# Error generating curriculum. Please try again."
+        );
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -138,10 +181,10 @@ User request: ${prompt}`;
           }`}
         >
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            Learn to communicate with AI to create software. Master the art of
-            prompt engineering, natural language programming, and collaborative
-            coding with LLMs. The future belongs to those who can speak to
-            machines.
+            Get AI-generated learning paths tailored to your goals, or dive
+            straight into code generation. Master prompt engineering, natural
+            language programming, and collaborative coding with AI. The future
+            belongs to those who can speak to machines.
           </p>
         </div>
 
@@ -152,18 +195,39 @@ User request: ${prompt}`;
           }`}
         >
           <div className="max-w-2xl mx-auto mb-8">
+            {/* Mode Selector */}
+            <div className="flex gap-2 mb-4 justify-center">
+              <Button
+                variant={mode === "curriculum" ? "default" : "outline"}
+                onClick={() => setMode("curriculum")}
+                className="transition-all duration-300"
+              >
+                Generate Curriculum
+              </Button>
+              <Button
+                variant={mode === "code" ? "default" : "outline"}
+                onClick={() => setMode("code")}
+                className="transition-all duration-300"
+              >
+                Generate Code
+              </Button>
+            </div>
             <div className="flex gap-2 mb-4">
               <Input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Try: 'Create a function to check if a number is prime'"
+                placeholder={
+                  mode === "curriculum"
+                    ? "Try: 'I want to learn data analysis with Python'"
+                    : "Try: 'Create a function to check if a number is prime'"
+                }
                 className="text-lg py-6 px-6 flex-1"
-                onKeyPress={(e) => e.key === "Enter" && generateCode()}
+                onKeyPress={(e) => e.key === "Enter" && generateContent()}
                 disabled={isGenerating}
               />
               <Button
                 size="lg"
-                onClick={generateCode}
+                onClick={generateContent}
                 disabled={!prompt.trim() || isGenerating}
                 className="px-6 py-6 hover:scale-105 transition-all duration-300"
               >
@@ -175,7 +239,9 @@ User request: ${prompt}`;
                 ) : (
                   <>
                     <Send className="w-5 h-5 mr-2" />
-                    Generate Code
+                    {mode === "curriculum"
+                      ? "Generate Curriculum"
+                      : "Generate Code"}
                   </>
                 )}
               </Button>
@@ -199,22 +265,121 @@ User request: ${prompt}`;
               <div className="flex items-center gap-3 ml-4">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-muted-foreground">
-                  {generatedCode
-                    ? "Your Generated Code"
-                    : "Natural Language → Code"}
+                  {mode === "code"
+                    ? generatedCode
+                      ? "Your Generated Code"
+                      : "Natural Language → Code"
+                    : generatedCurriculum
+                    ? "Your Generated Curriculum"
+                    : "Natural Language → Curriculum"}
                 </span>
               </div>
             </div>
 
-            {generatedCode ? (
-              // Show generated code
+            {mode === "code" ? (
+              generatedCode ? (
+                // Show generated code
+                <div className="p-6 text-left">
+                  <div className="text-xs text-green-600 font-medium mb-3">
+                    GENERATED FROM YOUR PROMPT:
+                  </div>
+                  <pre className="text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                    <code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      {generatedCode}
+                    </code>
+                  </pre>
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setPrompt("");
+                        setGeneratedCode("");
+                      }}
+                      variant="outline"
+                    >
+                      Try Another
+                    </Button>
+                    <Button size="sm" asChild>
+                      <Link
+                        href={`/editor${
+                          generatedCode
+                            ? `?code=${encodeURIComponent(generatedCode)}`
+                            : ""
+                        }`}
+                      >
+                        Edit in Full Editor
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Show demo split view
+                <div className="flex">
+                  {/* Chat side */}
+                  <div className="flex-1 p-6 border-r border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-750">
+                    <div className="space-y-3 text-left">
+                      <div className="text-xs text-blue-600 font-medium mb-2">
+                        YOU SAY:
+                      </div>
+                      <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg text-sm">
+                        "Create a function that calculates fibonacci numbers
+                        efficiently, and show me how to use it"
+                      </div>
+                      <div className="text-xs text-purple-600 font-medium mt-4 mb-2">
+                        AI DELIVERS:
+                      </div>
+                      <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg text-sm">
+                        "I'll create an optimized fibonacci function using
+                        memoization..."
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Code side */}
+                  <div className="flex-1 p-6 text-left">
+                    <div className="text-xs text-green-600 font-medium mb-2">
+                      GENERATED CODE:
+                    </div>
+                    <pre className="text-sm">
+                      <code className="text-blue-600">def</code>{" "}
+                      <code className="text-purple-600">fibonacci_memo</code>
+                      <code className="text-gray-600">(n, memo={"{}"}):</code>
+                      {"\n"}
+                      <code className="text-blue-600"> if</code>{" "}
+                      <code className="text-gray-600">n in memo:</code>
+                      {"\n"}
+                      <code className="text-blue-600"> return</code>{" "}
+                      <code className="text-gray-600">memo[n]</code>
+                      {"\n"}
+                      <code className="text-blue-600"> if</code>{" "}
+                      <code className="text-gray-600">n &lt;= 1:</code>
+                      {"\n"}
+                      <code className="text-blue-600"> return</code>{" "}
+                      <code className="text-gray-600">n</code>
+                      {"\n"}
+                      <code className="text-gray-600"> memo[n] = </code>
+                      <code className="text-purple-600">fibonacci_memo</code>
+                      <code className="text-gray-600">(n-1, memo)</code>
+                      {"\n"}
+                      <code className="text-gray-600"> + </code>
+                      <code className="text-purple-600">fibonacci_memo</code>
+                      <code className="text-gray-600">(n-2, memo)</code>
+                      {"\n"}
+                      <code className="text-blue-600"> return</code>{" "}
+                      <code className="text-gray-600">memo[n]</code>
+                    </pre>
+                  </div>
+                </div>
+              )
+            ) : generatedCurriculum ? (
+              // Show generated curriculum
               <div className="p-6 text-left">
                 <div className="text-xs text-green-600 font-medium mb-3">
-                  GENERATED FROM YOUR PROMPT:
+                  GENERATED CURRICULUM:
                 </div>
                 <pre className="text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
                   <code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {generatedCode}
+                    {generatedCurriculum}
                   </code>
                 </pre>
                 <div className="mt-4 flex gap-2">
@@ -222,7 +387,7 @@ User request: ${prompt}`;
                     size="sm"
                     onClick={() => {
                       setPrompt("");
-                      setGeneratedCode("");
+                      setGeneratedCurriculum("");
                     }}
                     variant="outline"
                   >
@@ -230,13 +395,15 @@ User request: ${prompt}`;
                   </Button>
                   <Button size="sm" asChild>
                     <Link
-                      href={`/editor${
-                        generatedCode
-                          ? `?code=${encodeURIComponent(generatedCode)}`
+                      href={`/curriculum${
+                        generatedCurriculum
+                          ? `?curriculum=${encodeURIComponent(
+                              generatedCurriculum
+                            )}`
                           : ""
                       }`}
                     >
-                      Edit in Full Editor
+                      Start Learning Journey
                     </Link>
                   </Button>
                 </div>
@@ -251,15 +418,14 @@ User request: ${prompt}`;
                       YOU SAY:
                     </div>
                     <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg text-sm">
-                      "Create a function that calculates fibonacci numbers
-                      efficiently, and show me how to use it"
+                      "Create a curriculum for learning Python programming"
                     </div>
                     <div className="text-xs text-purple-600 font-medium mt-4 mb-2">
                       AI DELIVERS:
                     </div>
                     <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg text-sm">
-                      "I'll create an optimized fibonacci function using
-                      memoization..."
+                      "I'll create a 5-step curriculum for learning Python
+                      programming"
                     </div>
                   </div>
                 </div>
@@ -267,7 +433,7 @@ User request: ${prompt}`;
                 {/* Code side */}
                 <div className="flex-1 p-6 text-left">
                   <div className="text-xs text-green-600 font-medium mb-2">
-                    GENERATED CODE:
+                    GENERATED CURRICULUM:
                   </div>
                   <pre className="text-sm">
                     <code className="text-blue-600">def</code>{" "}
@@ -303,7 +469,7 @@ User request: ${prompt}`;
           </div>
 
           {/* Floating Learning Tip */}
-          {!generatedCode && (
+          {mode === "curriculum" && !generatedCurriculum && (
             <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border p-4 max-w-xs hidden lg:block animate-float">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
