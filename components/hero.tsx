@@ -3,6 +3,7 @@
 import { AudioRecorderButton } from "./audio-recorder-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MarkdownRenderer } from "./markdown-renderer";
 import {
   ArrowUp,
   BookOpen,
@@ -29,13 +30,11 @@ export function Hero() {
     "Detect duplicate files in a directory using hash comparison in Python",
   ];
   const supriseCurriculums: string[] = [
-    "I want to learn how to build a command-line Pomodoro timer with Python", 
-    "I want to understand object-oriented programming with Python from scratch", 
-    "I want to learn how to handle and visualise data with pandas and matplotlib", 
+    "I want to learn how to build a command-line Pomodoro timer with Python",
+    "I want to understand object-oriented programming with Python from scratch",
+    "I want to learn how to handle and visualise data with pandas and matplotlib",
     "I want to master error handling and debugging techniques in Python",
   ];
-
-
 
   const handleSupriseClick = () => {
     if (mode == "code") {
@@ -51,7 +50,7 @@ export function Hero() {
 
   useEffect(() => {
     setIsVisible(true);
-  }, [])
+  }, []);
 
   const generateContent = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -208,22 +207,20 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
           }`}
         >
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            <i>"The Hottest New Programming Language is English"</i> -- Andrej Kaparthy
+            <i>"The Hottest New Programming Language is English"</i> -- Andrej
+            Kaparthy
           </p>
         </div>
 
-        
         {/* Vibe button above search */}
         <div className="mt-16 mb-4 text-center">
-          <Link
-            href="/prompting"
-          >
-            <Button 
+          <Link href="/prompting">
+            <Button
               variant="ghost"
               className="text-gray-400 hover:text-gray-900 flex items-center gap-2 mx-auto"
             >
-            <Brain className="w-4 h-4" />
-            Learn to Vibe
+              <Brain className="w-4 h-4" />
+              Learn to Vibe
             </Button>
           </Link>
         </div>
@@ -278,10 +275,11 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                 </Button>
               </div>
 
-              
               <div className="flex items-center gap-3">
                 {/* Audio button */}
-                <AudioRecorderButton onTranscription={(text) => setPrompt(text)} />
+                <AudioRecorderButton
+                  onTranscription={(text) => setPrompt(text)}
+                />
                 {/* Submission Button */}
                 <Button
                   variant="ghost"
@@ -343,11 +341,11 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                   <div className="text-xs text-green-600 font-medium mb-3">
                     GENERATED FROM YOUR PROMPT:
                   </div>
-                  <pre className="text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
-                    <code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                      {generatedCode}
-                    </code>
-                  </pre>
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                    <MarkdownRenderer
+                      content={`\`\`\`python\n${generatedCode}\n\`\`\``}
+                    />
+                  </div>
                   <div className="mt-4 flex gap-2">
                     <Button
                       size="sm"
@@ -437,11 +435,9 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                 <div className="text-xs text-green-600 font-medium mb-3">
                   GENERATED CURRICULUM:
                 </div>
-                <pre className="text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
-                  <code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {generatedCurriculum}
-                  </code>
-                </pre>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                  <MarkdownRenderer content={generatedCurriculum} />
+                </div>
                 <div className="mt-4 flex gap-2">
                   <Button
                     size="sm"
