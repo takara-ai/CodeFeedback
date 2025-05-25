@@ -5,7 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Home } from "lucide-react";
+import { NameInputModal } from "@/components/name-input-modal";
+import { RefreshCw, Home, Trophy } from "lucide-react";
+import Link from "next/link";
 
 interface CodeMetrics {
   lines: number;
@@ -30,6 +32,8 @@ interface PromptResult {
 function PromptLab() {
   const [result, setResult] = useState<PromptResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -63,7 +67,7 @@ function PromptLab() {
       const score = calculateScore(originalMetrics, userCodeMetrics);
       const feedback = generateFeedback(userPrompt, score);
 
-      setResult({
+      const resultData = {
         originalCode,
         improvedCode: userCode,
         originalPrompt,
@@ -72,11 +76,44 @@ function PromptLab() {
         feedback,
         before: originalMetrics,
         after: userCodeMetrics,
-      });
+      };
+
+      setResult(resultData);
+
+      // Show name modal after a short delay
+      setTimeout(() => {
+        setShowNameModal(true);
+      }, 1000);
     } catch (error) {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitToLeaderboard = async (name: string) => {
+    if (!result) return;
+
+    setIsSubmittingScore(true);
+    try {
+      const response = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          score: result.score,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setShowNameModal(false);
+        // Could show a success message here
+      }
+    } catch (error) {
+      console.error("Error submitting to leaderboard:", error);
+    } finally {
+      setIsSubmittingScore(false);
     }
   };
 
@@ -279,7 +316,9 @@ print(calculate())`,
               <span className="text-sm">"{result.originalPrompt}"</span>
             </div>
             <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
-              <pre className="text-red-400">{result.originalCode}</pre>
+              <pre className="text-red-400 whitespace-pre-wrap break-words">
+                {result.originalCode}
+              </pre>
             </div>
           </div>
 
@@ -289,7 +328,9 @@ print(calculate())`,
               <span className="text-sm">"{result.improvedPrompt}"</span>
             </div>
             <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
-              <pre className="text-green-400">{result.improvedCode}</pre>
+              <pre className="text-green-400 whitespace-pre-wrap break-words">
+                {result.improvedCode}
+              </pre>
             </div>
           </div>
         </div>
@@ -300,12 +341,27 @@ print(calculate())`,
             <RefreshCw className="w-4 h-4 mr-1" />
             Try Again
           </Button>
+          <Button asChild variant="outline">
+            <Link href="/leaderboard">
+              <Trophy className="w-4 h-4 mr-1" />
+              Leaderboard
+            </Link>
+          </Button>
           <Button onClick={() => (window.location.href = "/")}>
             <Home className="w-4 h-4 mr-1" />
             Next Challenge
           </Button>
         </div>
       </div>
+
+      {/* Name Input Modal */}
+      <NameInputModal
+        isOpen={showNameModal}
+        score={result.score}
+        onSubmit={submitToLeaderboard}
+        onSkip={() => setShowNameModal(false)}
+        isSubmitting={isSubmittingScore}
+      />
     </div>
   );
 }

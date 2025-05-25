@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu } from "lucide-react";
+import { Moon, Sun, Menu, Trophy } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useState } from "react";
@@ -27,8 +27,15 @@ export function Header() {
 
         {/* Actions */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Theme Toggle */}
+          {/* Leaderboard Link */}
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/leaderboard" className="flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+              Leaderboard
+            </Link>
+          </Button>
 
+          {/* Theme Toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -49,6 +56,13 @@ export function Header() {
         } overflow-hidden`}
       >
         <nav className="container mx-auto px-4 py-4 space-y-4">
+          <Link
+            href="/leaderboard"
+            className="flex items-center gap-2 text-sm font-medium hover:text-blue-600 transition-colors"
+          >
+            <Trophy className="w-4 h-4" />
+            Leaderboard
+          </Link>
           <Link
             href="#features"
             className="block text-sm font-medium hover:text-blue-600 transition-colors"
