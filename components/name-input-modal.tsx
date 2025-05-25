@@ -74,6 +74,9 @@ export function NameInputModal({
                 <p className="text-sm font-medium mb-3">
                   🎯 Add your name to the leaderboard!
                 </p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  💡 Scores accumulate - play multiple times to climb higher!
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">

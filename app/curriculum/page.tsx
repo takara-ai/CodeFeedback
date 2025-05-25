@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { NameInputModal } from "@/components/name-input-modal";
 import { RefreshCw, Home, Trophy } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 interface CodeMetrics {
   lines: number;
@@ -35,6 +36,7 @@ function PromptLab() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   useEffect(() => {
     const originalPrompt = searchParams.get("originalPrompt");
@@ -108,10 +110,27 @@ function PromptLab() {
       const data = await response.json();
       if (data.success) {
         setShowNameModal(false);
-        // Could show a success message here
+        // Show success message with score information
+        if (data.previousScore > 0) {
+          toast({
+            title: "Score Added! 🎉",
+            description: `Previous: ${data.previousScore}% → Added: ${data.addedScore}% → New Total: ${data.newScore}%`,
+          });
+        } else {
+          toast({
+            title: "First Score Submitted! 🚀",
+            description: `Your score: ${data.newScore}% - Keep playing to accumulate more points!`,
+          });
+        }
       }
     } catch (error) {
       console.error("Error submitting to leaderboard:", error);
+      toast({
+        title: "Submission Failed",
+        description:
+          "There was an error submitting your score. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingScore(false);
     }
