@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LangCode - Learn to Build with Language",
+  title: "VibeLearning - Master AI Prompt Engineering",
   description:
-    "Master natural language programming and learn to collaborate with AI to create software. The future of coding is conversational.",
+    "Learn to craft perfect prompts for AI code generation. Master the art of communicating with AI to create better software through strategic prompt engineering.",
   generator: "v0.dev",
 };
 
