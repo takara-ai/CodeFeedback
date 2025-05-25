@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RefreshCw, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Editor } from "@monaco-editor/react";
 
 export function Hero() {
   const [userPrompt, setUserPrompt] = useState("");
@@ -128,10 +129,23 @@ print(calculate())`,
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
               <span className="text-sm">"{originalBadPrompt}" generates:</span>
             </div>
-            <div className="bg-gray-900 rounded p-3 text-sm font-mono overflow-x-auto max-h-48">
-              <pre className="text-green-400 whitespace-pre-wrap break-words">
-                {generatedCode || "Loading..."}
-              </pre>
+            <div className="border rounded-lg overflow-hidden h-64">
+              <Editor
+                height="100%"
+                defaultLanguage="python"
+                language="python"
+                theme="vs-dark"
+                value={generatedCode || "# Loading..."}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  lineNumbers: "on",
+                  folding: false,
+                  wordWrap: "on",
+                }}
+              />
             </div>
           </div>
 
