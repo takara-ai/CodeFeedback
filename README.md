@@ -44,16 +44,16 @@ cp .env.example .env.local
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-### Leaderboard Setup (Optional)
+### Leaderboard Setup (Required)
 
-For persistent leaderboards on Vercel:
+For persistent leaderboards using Upstash Redis:
 
-1. **Enable Vercel KV** in your Vercel dashboard
-2. **Add environment variables** in Vercel:
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
+1. **Create an Upstash Redis database** at [upstash.com](https://upstash.com)
+2. **Add environment variables** in Vercel or your `.env.local`:
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
 
-> **Note**: The app works without Vercel KV using in-memory storage for local development.
+> **Note**: Upstash Redis is required for the leaderboard functionality to work.
 
 ### Development
 
@@ -81,7 +81,7 @@ Deploy to Vercel with one click:
 
 - **Framework**: Next.js 15 with App Router
 - **Styling**: Tailwind CSS + shadcn/ui
-- **Database**: Vercel KV (Redis) for leaderboards
+- **Database**: Upstash Redis for leaderboards
 - **AI**: OpenAI GPT for code generation and analysis
 - **Deployment**: Vercel
 
