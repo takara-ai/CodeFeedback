@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Moon, Sun, Menu } from "lucide-react";
+import { MessageSquare, Moon, Sun, Menu, Trophy } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useState } from "react";
@@ -36,6 +36,38 @@ export function Header() {
 
         {/* Actions */}
         <div className="hidden md:flex items-center gap-2">
+          {/* Code */}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="hover:scale-105 transition-transform duration-300"
+          >
+            <Link href="/">Code</Link>
+          </Button>
+          {/* Vibe */}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="hover:scale-105 transition-transform duration-300"
+          >
+            <Link href="/prompting">Vibe</Link>
+          </Button>
+          {/* Leaderboard */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild
+            className="hover:scale-105 transition-transform duration-300"
+          >
+            <Link href="/leaderboard">
+              <Trophy className="w-4 h-4" />
+                Leaderboard
+            </Link>
+          </Button>
+
+
           {/* Theme Toggle */}
           <Button
             variant="ghost"
@@ -57,11 +89,33 @@ export function Header() {
         } overflow-hidden`}
       >
         <nav className="container mx-auto px-4 py-4 space-y-4">
+          {/* Code */}
+          <Link
+            href="/"
+            className="block text-sm font-medium hover:text-blue-600 transition-colors"
+          >
+            Code
+          </Link>
+
+          {/* Vibing */}
+          <Link
+            href="/prompting"
+            className="block text-sm font-medium hover:text-blue-600 transition-colors"
+          >
+            Vibe
+          </Link>
+          
           <div className="flex gap-2 pt-2">
             <Button size="sm" asChild>
               <Link href="/editor">Start Learning</Link>
             </Button>
           </div>
+
+          {/* Leaderboard */}
+          <Link href="/leaderboard" className="flex items-center gap-2">
+              <Trophy className="w-4 h-4" />
+                Leaderboard
+          </Link>
         </nav>
       </div>
     </header>

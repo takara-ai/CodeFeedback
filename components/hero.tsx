@@ -8,6 +8,7 @@ import {
   BookOpen,
   Hammer,
   Sparkles,
+  Brain,
   MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
@@ -211,8 +212,24 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
           </p>
         </div>
 
+        
+        {/* Vibe button above search */}
+        <div className="mt-16 mb-4 text-center">
+          <Link
+            href="/prompting"
+          >
+            <Button 
+              variant="ghost"
+              className="text-gray-400 hover:text-gray-900 flex items-center gap-2 mx-auto"
+            >
+            <Brain className="w-4 h-4" />
+            Learn to Vibe
+            </Button>
+          </Link>
+        </div>
+
         {/* Interactive Prompt Box */}
-        <div className="relative w-full max-w-3xl mx-auto mt-16 mb-16">
+        <div className="relative w-full max-w-3xl mx-auto mt-0 mb-16">
           <div className="bg-gray-800 rounded-2xl border border-gray-700 px-4 py-2">
             {/* Input field */}
             <div className="flex items-center mb-1">
