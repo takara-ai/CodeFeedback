@@ -1,5 +1,4 @@
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js"
-import { audio } from "@elevenlabs/elevenlabs-js/api/resources/dubbing";
 import { NextRequest, NextResponse } from "next/server";
 
 const api_key = process.env.ELEVEN_LABS_KEY

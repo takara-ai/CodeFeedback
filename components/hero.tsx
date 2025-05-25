@@ -186,15 +186,15 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
 
         {/* Headline */}
         <div
-          className={`transform transition-all duration-1000 delay-200  mt-20 ${
+          className={`transform transition-all duration-1000 delay-200  mt-16 ${
             isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            Build with
+            Learn Your
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-gradient-x">
               {" "}
-              Language{" "}
+              Language,{" "}
             </span>
             Not Code
           </h1>
@@ -221,8 +221,8 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={
                   mode === "curriculum"
-                    ? "Try: &apos;I want to learn data analysis with Python&apos;"
-                    : "Try: &apos;Create a function to check if a number is prime&apos;"
+                    ? "Try: I want to learn data analysis with Python"
+                    : "Try: Create a function to check if a number is prime"
                 }
                 onKeyPress={(e) => e.key === "Enter" && generateContent()}
                 disabled={isGenerating}
