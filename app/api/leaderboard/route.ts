@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
 
 interface LeaderboardEntry {
   name: string;
@@ -9,25 +10,24 @@ interface LeaderboardEntry {
 // Fallback in-memory storage for local development
 let memoryLeaderboard: LeaderboardEntry[] = [];
 
-// Check if we're in a Vercel environment with KV
-const hasVercelKV =
-  process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+// Check if we're in an environment with Upstash Redis
+const hasUpstashRedis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
 
-async function getKV() {
-  if (hasVercelKV) {
-    const { kv } = await import("@vercel/kv");
-    return kv;
+function getRedis() {
+  if (hasUpstashRedis) {
+    return Redis.fromEnv();
   }
   return null;
 }
 
 export async function GET() {
   try {
-    const kv = await getKV();
+    const redis = getRedis();
 
-    if (kv) {
-      // Use Vercel KV
-      const entries = await kv.zrange("leaderboard", 0, 99, {
+    if (redis) {
+      // Use Upstash Redis
+      const entries = await redis.zrange("leaderboard", 0, 99, {
         rev: true,
         withScores: true,
       });
@@ -38,7 +38,7 @@ export async function GET() {
         const score = entries[i + 1] as number;
 
         const timestamp =
-          (await kv.hget(`user:${name}`, "timestamp")) || Date.now();
+          (await redis.hget(`user:${name}`, "timestamp")) || Date.now();
 
         leaderboard.push({
           name,
@@ -81,16 +81,16 @@ export async function POST(request: NextRequest) {
     }
 
     const timestamp = Date.now();
-    const kv = await getKV();
+    const redis = getRedis();
 
-    if (kv) {
-      // Use Vercel KV
-      const currentScore = (await kv.zscore("leaderboard", cleanName)) || 0;
+    if (redis) {
+      // Use Upstash Redis
+      const currentScore = (await redis.zscore("leaderboard", cleanName)) || 0;
 
       if (score > currentScore) {
-        await kv.zadd("leaderboard", { score, member: cleanName });
-        await kv.hset(`user:${cleanName}`, { timestamp });
-        await kv.expire(`user:${cleanName}`, 30 * 24 * 60 * 60);
+        await redis.zadd("leaderboard", { score, member: cleanName });
+        await redis.hset(`user:${cleanName}`, { timestamp });
+        await redis.expire(`user:${cleanName}`, 30 * 24 * 60 * 60);
       }
 
       return NextResponse.json({
