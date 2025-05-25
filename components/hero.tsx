@@ -29,9 +29,9 @@ export function Hero() {
     "Detect duplicate files in a directory using hash comparison in Python",
   ];
   const supriseCurriculums: string[] = [
-    "I want to learn how to build a command-line Pomodoro timer wioth Python",
-    "I want to understand object-oriented programming with Python from scratch",
-    "I want to learn how to handle and visualise data with pandas and matplotlib",
+    "I want to learn how to build a command-line Pomodoro timer with Python", 
+    "I want to understand object-oriented programming with Python from scratch", 
+    "I want to learn how to handle and visualise data with pandas and matplotlib", 
     "I want to master error handling and debugging techniques in Python",
   ];
 
@@ -238,8 +238,8 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={
                   mode === "curriculum"
-                    ? "Try: &apos;I want to learn data analysis with Python&apos;"
-                    : "Try: &apos;Create a function to check if a number is prime&apos;"
+                    ? "Try: I want to learn data analysis with Python"
+                    : "Try: Create a function to check if a number is prime"
                 }
                 onKeyPress={(e) => e.key === "Enter" && generateContent()}
                 disabled={isGenerating}
