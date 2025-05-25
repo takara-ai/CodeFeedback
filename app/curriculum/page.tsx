@@ -162,8 +162,8 @@ function CurriculumContent() {
                           <div className="w-5 h-5 border-2 border-muted-foreground rounded-full"></div>
                         )}
                       </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-sm">{step.title}</div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-medium text-sm truncate">{step.title}</div>
                         <div className="text-xs text-muted-foreground">
                           Step {index + 1}
                         </div>
