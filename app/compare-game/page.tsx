@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, RotateCcw, Trophy, Target, Zap, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, Trophy, Target, Zap, Loader2, Play } from "lucide-react";
+import { Editor } from "@monaco-editor/react";
+import type { PyodideInterface } from "@/types/pyodide";
 
 interface CodeComparison {
   prompt: string;
@@ -28,10 +30,150 @@ export default function CompareGamePage() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [usedTopics, setUsedTopics] = useState<string[]>([]);
   const [isGeneratingNext, setIsGeneratingNext] = useState(false);
+  
+  // Python execution state
+  const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
+  const [pyodideLoading, setPyodideLoading] = useState(false);
+  const [pyodideError, setPyodideError] = useState<string | null>(null);
+  const [leftOutput, setLeftOutput] = useState<string>("");
+  const [rightOutput, setRightOutput] = useState<string>("");
+  const [isRunningLeft, setIsRunningLeft] = useState(false);
+  const [isRunningRight, setIsRunningRight] = useState(false);
 
   useEffect(() => {
     initializeGame();
+    loadPyodide();
   }, []);
+
+  const loadPyodide = async () => {
+    if (pyodide || pyodideLoading || pyodideError) return;
+
+    try {
+      setPyodideLoading(true);
+      setPyodideError(null);
+
+      // Check if Pyodide is already loaded
+      if (window.loadPyodide) {
+        const py = await window.loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+        });
+        setPyodide(py);
+        setPyodideLoading(false);
+        return;
+      }
+
+      // Create and load the script
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+      script.async = true;
+
+      script.onload = async () => {
+        try {
+          if (window.loadPyodide) {
+            const py = await window.loadPyodide({
+              indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+            });
+            setPyodide(py);
+          } else {
+            throw new Error("Pyodide failed to load properly");
+          }
+        } catch (error) {
+          console.error("Error initializing Pyodide:", error);
+          setPyodideError(
+            error instanceof Error ? error.message : "Failed to initialize Pyodide"
+          );
+        } finally {
+          setPyodideLoading(false);
+        }
+      };
+
+      script.onerror = () => {
+        console.error("Failed to load Pyodide script");
+        setPyodideError("Failed to load Pyodide from CDN");
+        setPyodideLoading(false);
+      };
+
+      document.head.appendChild(script);
+    } catch (error) {
+      console.error("Error setting up Pyodide:", error);
+      setPyodideError(
+        error instanceof Error ? error.message : "Failed to setup Pyodide"
+      );
+      setPyodideLoading(false);
+    }
+  };
+
+  const runCode = async (code: string, side: 'left' | 'right') => {
+    if (pyodideLoading) {
+      const output = "⏳ Python environment is still loading... Please wait.";
+      if (side === 'left') setLeftOutput(output);
+      else setRightOutput(output);
+      return;
+    }
+
+    if (pyodideError) {
+      const output = `❌ Python environment error: ${pyodideError}`;
+      if (side === 'left') setLeftOutput(output);
+      else setRightOutput(output);
+      return;
+    }
+
+    if (!pyodide) {
+      const output = "❌ Python environment is not available.";
+      if (side === 'left') setLeftOutput(output);
+      else setRightOutput(output);
+      return;
+    }
+
+    if (side === 'left') {
+      setIsRunningLeft(true);
+      setLeftOutput("🚀 Running code...");
+    } else {
+      setIsRunningRight(true);
+      setRightOutput("🚀 Running code...");
+    }
+
+    try {
+      const wrappedCode = `
+import sys
+from io import StringIO
+import traceback
+
+# Capture stdout
+stdout = sys.stdout
+sys.stdout = StringIO()
+
+${code}
+    
+sys.stdout.getvalue()
+`;
+
+      let output = "";
+      try {
+        const result = await pyodide.runPythonAsync(wrappedCode);
+        output = String(result);
+      } catch (err: any) {
+        output = `❌ Error: ${err.toString()}`;
+      }
+
+      if (output.trim()) {
+        if (side === 'left') setLeftOutput(output);
+        else setRightOutput(output);
+      } else {
+        const successOutput = "✅ Code executed successfully! (No output produced)";
+        if (side === 'left') setLeftOutput(successOutput);
+        else setRightOutput(successOutput);
+      }
+    } catch (err: any) {
+      console.error("Code execution error:", err);
+      const errorOutput = `❌ Execution Error: ${err.toString()}`;
+      if (side === 'left') setLeftOutput(errorOutput);
+      else setRightOutput(errorOutput);
+    } finally {
+      if (side === 'left') setIsRunningLeft(false);
+      else setIsRunningRight(false);
+    }
+  };
 
   const generateTopics = async (): Promise<string[]> => {
     try {
@@ -174,49 +316,21 @@ Create two Python implementations - one with good practices and one with poor pr
 
 {
   "prompt": "${prompt}",
-  "goodCode": "def example():\n    # Clean, readable implementation\n    pass",
-  "badCode": "def example():\n    # Poor quality implementation\n    pass",
+  "goodCode": "def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())",
+  "badCode": "def example():\n    # Poor quality implementation\n    pass\n\n# Test the function\nprint(example())",
   "explanation": {
     "good": "Why this code follows good practices (readability, maintainability, etc.)",
     "bad": "Why this code has quality issues (hard to read, maintain, or understand)"
   }
 }
 
-IMPORTANT: Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
+IMPORTANT: 
+- Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
+- Both implementations must be FUNCTIONAL and produce VISIBLE OUTPUT when run
+- Include test code that calls the function and prints results so users can see how it works
+- Make the output meaningful and comparable between versions
 
-Focus on PRACTICAL code quality issues that anyone can understand:
-
-BAD CODE should demonstrate:
-- Poor variable names (x, data, stuff, temp, a, b, c)
-- Missing or unclear comments
-- Functions that do too much in one place
-- No error handling for obvious failure cases
-- Hardcoded values that should be configurable
-- Inconsistent formatting or style
-- Code that's hard to read or understand
-- Missing input validation
-- Repetitive code patterns
-- Confusing logic flow
-
-GOOD CODE should demonstrate:
-- Clear, descriptive variable and function names
-- Proper error handling for common issues
-- Clean, readable structure
-- Appropriate comments explaining the "why"
-- Input validation where needed
-- Consistent formatting
-- Single responsibility (function does one thing well)
-- Easy to understand logic flow
-- Well-organized code structure
-
-Make both implementations:
-- FUNCTIONAL and correct (both should work)
-- SIMILAR LENGTH (same approximate number of lines)
-- SAME COMPLEXITY LEVEL (don't make one more sophisticated)
-- Focus on QUALITY differences that affect readability, maintainability, and professionalism
-- Avoid complex algorithms or math - focus on everyday programming practices
-
-The challenge is to spot quality differences, not length differences!`
+Focus on PRACTICAL code quality issues that anyone can understand:`
           },
         ],
       }),
@@ -257,6 +371,10 @@ The challenge is to spot quality differences, not length differences!`
       setSelectedCode(null);
       setIsCorrect(null);
       
+      // Clear outputs
+      setLeftOutput("");
+      setRightOutput("");
+      
       // Generate next challenge
       await generateNewChallenge();
       
@@ -274,6 +392,11 @@ The challenge is to spot quality differences, not length differences!`
     setSelectedCode(null);
     setIsCorrect(null);
     setUsedTopics([]);
+    
+    // Clear outputs
+    setLeftOutput("");
+    setRightOutput("");
+    
     initializeGame();
   };
 
@@ -383,7 +506,7 @@ The challenge is to spot quality differences, not length differences!`
             Code Quality Detective
           </h1>
           <p className="text-gray-600 mb-4">
-            Learn to spot good vs poor code quality! AI generated two versions - which one is better written?
+            Learn to spot good vs poor code quality! Choose the better-written version first, then run both to see how they work.
           </p>
           
           <div className="flex justify-center items-center gap-6">
@@ -441,16 +564,64 @@ The challenge is to spot quality differences, not length differences!`
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-900 rounded-lg p-4 text-sm">
-                <pre className="text-green-400 whitespace-pre-wrap overflow-x-auto">
-                  {leftCode}
-                </pre>
+              <div className="bg-gray-900 rounded-lg overflow-hidden mb-4">
+                <Editor
+                  height="200px"
+                  defaultLanguage="python"
+                  language="python"
+                  value={leftCode}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    fontSize: 13,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                  }}
+                />
               </div>
+              
+              {/* Run Button */}
+              <Button 
+                onClick={() => runCode(leftCode, 'left')}
+                className="w-full mb-4"
+                variant="outline"
+                disabled={isRunningLeft || pyodideLoading || gameState === 'playing'}
+              >
+                {isRunningLeft ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Running...
+                  </>
+                ) : gameState === 'playing' ? (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Make your choice first
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Code
+                  </>
+                )}
+              </Button>
+
+              {/* Output Display */}
+              {leftOutput && (
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-sm">
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Output:</div>
+                  <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
+                    {leftOutput}
+                  </pre>
+                </div>
+              )}
               
               {gameState === 'playing' && (
                 <Button 
                   onClick={() => handleChoice('left')}
-                  className="w-full mt-4"
+                  className="w-full"
                   variant={selectedCode === 'left' ? "default" : "outline"}
                 >
                   Choose Version A
@@ -498,16 +669,64 @@ The challenge is to spot quality differences, not length differences!`
               </div>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-900 rounded-lg p-4 text-sm">
-                <pre className="text-green-400 whitespace-pre-wrap overflow-x-auto">
-                  {rightCode}
-                </pre>
+              <div className="bg-gray-900 rounded-lg overflow-hidden mb-4">
+                <Editor
+                  height="200px"
+                  defaultLanguage="python"
+                  language="python"
+                  value={rightCode}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    fontSize: 13,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                  }}
+                />
               </div>
+              
+              {/* Run Button */}
+              <Button 
+                onClick={() => runCode(rightCode, 'right')}
+                className="w-full mb-4"
+                variant="outline"
+                disabled={isRunningRight || pyodideLoading || gameState === 'playing'}
+              >
+                {isRunningRight ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Running...
+                  </>
+                ) : gameState === 'playing' ? (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Make your choice first
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Run Code
+                  </>
+                )}
+              </Button>
+
+              {/* Output Display */}
+              {rightOutput && (
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-sm">
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Output:</div>
+                  <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
+                    {rightOutput}
+                  </pre>
+                </div>
+              )}
               
               {gameState === 'playing' && (
                 <Button 
                   onClick={() => handleChoice('right')}
-                  className="w-full mt-4"
+                  className="w-full"
                   variant={selectedCode === 'right' ? "default" : "outline"}
                 >
                   Choose Version B
