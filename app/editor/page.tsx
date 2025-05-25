@@ -8,8 +8,7 @@ import { useSearchParams } from "next/navigation";
 import type { PyodideInterface } from "@/types/pyodide";
 
 const DEFAULT_P5JS_CODE = `
-// Welcome to Visual Coding with p5.js! 🎨
-// This example shows how to create animations
+// Welcome to Visual Coding! 🎨
 
 let x = 100;
 let y = 200;
@@ -20,6 +19,7 @@ let ballSize = 50;
 function setup() {
   createCanvas(450, 500);
 }
+
 
 function draw() {
   // Create trail effect by drawing a semi-transparent background
@@ -126,7 +126,7 @@ function EditorContent() {
           : "Loading Python environment..."
       );
     } else {
-      setOutput("✅ p5.js ready! Click 'Run' to see your visual output.");
+      setOutput("p5.js ready! Click 'Run' to see your visual output.");
     }
   }, [language, pyodide, searchParams]);
 
@@ -215,10 +215,10 @@ function EditorContent() {
       setIsRunning(true);
       try {
         setP5Code(code);
-        setOutput("✅ p5.js animation running! Check the visual output on the right.");
+        setOutput("p5.js animation running!")
       } catch (error) {
         console.error("Error running p5.js code:", error);
-        setOutput(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+        setOutput(`Error: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         setIsRunning(false);
       }
@@ -264,20 +264,21 @@ import traceback
 stdout = sys.stdout
 sys.stdout = StringIO()
 
-${code}
-    
-sys.stdout.getvalue()
-`;
+try:
+    exec("""${code.replace(/"/g, '\\"').replace(/\n/g, "\\n")}""")
+    result = sys.stdout.getvalue()
+except Exception as e:
+    # Get full traceback for better error reporting
+    import traceback
+    result = f"Error: {str(e)}\\n\\nTraceback:\\n{traceback.format_exc()}"
+finally:
+    sys.stdout = stdout
 
-        let output = "";
-        try{
-          const result = await pyodide.runPythonAsync(wrappedCode);
-          output = String(result);
-        }
-        catch(err: any){
-          output = `❌ Python Execution Error: ${err.toString()}`;
+result`;
 
-        }
+        const result = await pyodide.runPythonAsync(wrappedCode);
+        const output = String(result);
+
         if (output.trim()) {
           setOutput(output);
         } else {

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Editor } from "@monaco-editor/react";
+import { useEffect, useRef } from "react";
 import { P5Canvas } from "@/components/p5-canvas";
 import {
   Select,
@@ -32,6 +33,7 @@ export function CodeEditor({
   onP5Error,
   onP5Success,
 }: CodeEditorProps) {
+
   return (
     <div className="flex h-full">
       {/* Left side - Code Editor */}

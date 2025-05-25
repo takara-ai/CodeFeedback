@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "VibeLearning - Master AI Prompt Engineering",
+  title: "The Ultimate Viber - Learn to Build with Language",
   description:
-    "Learn to craft perfect prompts for AI code generation. Master the art of communicating with AI to create better software through strategic prompt engineering.",
-  generator: "v0.dev",
+    "Master natural language programming and learn to collaborate with AI to create software. The future of coding is conversational.",
 };
 
 export default function RootLayout({
@@ -16,10 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        {children}
-        <Toaster />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

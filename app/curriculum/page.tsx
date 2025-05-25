@@ -2,460 +2,279 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Header } from "@/components/header";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { NameInputModal } from "@/components/name-input-modal";
-import { RefreshCw, Home, Trophy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { BookOpen, ArrowLeft, ArrowRight, Play } from "lucide-react";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
-import { Editor } from "@monaco-editor/react";
 
-interface CodeMetrics {
-  lines: number;
-  functions: number;
-  errorHandling: number;
-  documentation: number;
-  validation: number;
-  security: number;
+interface CurriculumStep {
+  title: string;
+  learn: string;
+  prompt: string;
+  code: string;
 }
 
-interface PromptResult {
-  originalCode: string;
-  improvedCode: string;
-  originalPrompt: string;
-  improvedPrompt: string;
-  score: number;
-  feedback: string;
-  before: CodeMetrics;
-  after: CodeMetrics;
-}
+function CurriculumContent() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [steps, setSteps] = useState<CurriculumStep[]>([]);
+  const [title, setTitle] = useState("");
+  const [goal, setGoal] = useState("");
 
-function PromptLab() {
-  const [result, setResult] = useState<PromptResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const searchParams = useSearchParams();
-  const { toast } = useToast();
 
   useEffect(() => {
-    const originalPrompt = searchParams.get("originalPrompt");
-    const originalCode = searchParams.get("originalCode");
-    const userPrompt = searchParams.get("userPrompt");
-
-    if (originalPrompt && originalCode && userPrompt) {
-      runAnalysis(originalPrompt, originalCode, userPrompt);
+    const curriculumData = searchParams.get("curriculum");
+    if (curriculumData) {
+      try {
+        const decodedCurriculum = decodeURIComponent(curriculumData);
+        parseCurriculum(decodedCurriculum);
+      } catch (error) {
+        console.error("Error decoding curriculum:", error);
+      }
     }
   }, [searchParams]);
 
-  const runAnalysis = async (
-    originalPrompt: string,
-    originalCode: string,
-    userPrompt: string
-  ) => {
-    setLoading(true);
+  const parseCurriculum = (content: string) => {
+    const lines = content.split("\n");
+    let parsedTitle = "";
+    let parsedGoal = "";
+    const parsedSteps: CurriculumStep[] = [];
 
-    try {
-      // Generate improved code
-      const userCode = await generateCode(userPrompt);
+    let currentStepData: CurriculumStep | null = null;
+    let currentCode = "";
 
-      // Analyze both codes in parallel
-      const [originalMetrics, userCodeMetrics] = await Promise.all([
-        analyzeCode(originalCode),
-        analyzeCode(userCode),
-      ]);
+    let inCodeBlock = false;
 
-      // Calculate score and feedback
-      const score = calculateScore(originalMetrics, userCodeMetrics);
-      const feedback = generateFeedback(userPrompt, score);
-
-      const resultData = {
-        originalCode,
-        improvedCode: userCode,
-        originalPrompt,
-        improvedPrompt: userPrompt,
-        score,
-        feedback,
-        before: originalMetrics,
-        after: userCodeMetrics,
-      };
-
-      setResult(resultData);
-
-      // Show name modal after a short delay
-      setTimeout(() => {
-        setShowNameModal(true);
-      }, 1000);
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitToLeaderboard = async (name: string) => {
-    if (!result) return;
-
-    setIsSubmittingScore(true);
-    try {
-      const response = await fetch("/api/leaderboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          score: result.score,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setShowNameModal(false);
-        // Show success message with score information
-        if (data.previousScore > 0) {
-          toast({
-            title: "Score Added! 🎉",
-            description: `Previous: ${data.previousScore}% → Added: ${data.addedScore}% → New Total: ${data.newScore}%`,
-          });
-        } else {
-          toast({
-            title: "First Score Submitted! 🚀",
-            description: `Your score: ${data.newScore}% - Keep playing to accumulate more points!`,
-          });
+    for (const line of lines) {
+      if (line.startsWith("# Learning Path:")) {
+        parsedTitle = line.replace("# Learning Path:", "").trim();
+      } else if (line.startsWith("**Goal:**")) {
+        parsedGoal = line.replace("**Goal:**", "").trim();
+      } else if (line.startsWith("## Step ")) {
+        if (currentStepData) {
+          currentStepData.code = currentCode.trim();
+          parsedSteps.push(currentStepData);
         }
-      }
-    } catch (error) {
-      console.error("Error submitting to leaderboard:", error);
-      toast({
-        title: "Submission Failed",
-        description:
-          "There was an error submitting your score. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingScore(false);
-    }
-  };
-
-  const analyzeCode = async (code: string): Promise<CodeMetrics> => {
-    try {
-      const response = await fetch("/api/chat-json", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "user",
-              content: `You are a code analysis expert. Count these specific metrics in the Python code below.
-
-COUNTING RULES:
-- functions: Count def statements (including methods in classes)
-- errorHandling: Count try/except blocks, raise statements, input validation
-- documentation: Count docstrings (""" or '''), meaningful comments (#)
-- validation: Count input checks, type validation, assertion statements
-- security: Count password hashing, input sanitization, authentication checks
-
-EXAMPLES:
-def calculate(x):
-    """Calculate something"""  # +1 documentation
-    if x < 0:                  # +1 validation
-        raise ValueError()     # +1 errorHandling
-    return x * 2
-
-Counts: functions=1, errorHandling=1, documentation=1, validation=1, security=0
-
-CODE TO ANALYZE:
-${code}
-
-Return ONLY valid JSON with exact counts:
-{
-  "lines": ${code.split("\n").filter((line) => line.trim()).length},
-  "functions": 2,
-  "errorHandling": 1,
-  "documentation": 0,
-  "validation": 0,
-  "security": 0
-}`,
-            },
-          ],
-        }),
-      });
-
-      const data = await response.json();
-      const content = data.content
-        .replace(/```json\n?|\n?```/g, "")
-        .replace(/^[^{]*/, "")
-        .replace(/[^}]*$/, "");
-      const parsed = JSON.parse(content);
-
-      // Validate metrics are reasonable numbers
-      return {
-        lines: Math.max(0, parsed.lines || 0),
-        functions: Math.max(0, parsed.functions || 0),
-        errorHandling: Math.max(0, parsed.errorHandling || 0),
-        documentation: Math.max(0, parsed.documentation || 0),
-        validation: Math.max(0, parsed.validation || 0),
-        security: Math.max(0, parsed.security || 0),
-      };
-    } catch {
-      // Improved fallback with better regex patterns
-      const lines = code.split("\n").filter((line) => line.trim()).length;
-      return {
-        lines,
-        functions: Math.max(0, (code.match(/def\s+\w+/g) || []).length),
-        errorHandling: Math.max(
-          0,
-          (
-            code.match(
-              /try:|except|raise\s+\w+|if.*(?:error|invalid|none)/gi
-            ) || []
-          ).length
-        ),
-        documentation: Math.max(
-          0,
-          (code.match(/"""[\s\S]*?"""|'''[\s\S]*?'''|#[^\n]*/g) || []).length
-        ),
-        validation: Math.max(
-          0,
-          (code.match(/if\s+.*(?:not|is\s+none|<|>|==|!=)|assert\s+/gi) || [])
-            .length
-        ),
-        security: Math.max(
-          0,
-          (code.match(/hash|encrypt|auth|password|token|bcrypt|jwt/gi) || [])
-            .length
-        ),
-      };
-    }
-  };
-
-  const generateCode = async (prompt: string): Promise<string> => {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "user",
-            content: `Generate ONLY Python code for: ${prompt}
-
-RULES:
-- Return ONLY executable Python code
-- NO markdown, NO explanations, NO comments
-- Clean, functional code only
-
-Example output:
-def calculate():
-    return 2 + 2
-print(calculate())`,
-          },
-        ],
-      }),
-    });
-
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-    let code = "";
-
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        for (const line of chunk.split("\n")) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) code += parsed.content;
-            } catch {}
-          }
-        }
+        currentStepData = {
+          title: line.replace(/## Step \d+:\s*/, "").trim(),
+          learn: "",
+          prompt: "",
+          code: "",
+        };
+        currentCode = "";
+      } else if (line.startsWith("**Learn:**") && currentStepData) {
+        currentStepData.learn = line.replace("**Learn:**", "").trim();
+      } else if (line.startsWith("**Prompt:**") && currentStepData) {
+        currentStepData.prompt = line.replace("**Prompt:**", "").trim();
+      } else if (line.startsWith("```python")) {
+        inCodeBlock = true;
+      } else if (line.startsWith("```") && inCodeBlock) {
+        inCodeBlock = false;
+      } else if (inCodeBlock) {
+        currentCode += line + "\n";
       }
     }
 
-    return code
-      .replace(/^```python\s*/i, "")
-      .replace(/^```\s*/gm, "")
-      .replace(/\s*```\s*$/g, "")
-      .replace(/^Here.*?code.*?:/gim, "")
-      .replace(/^Below.*?code.*?:/gim, "")
-      .trim();
+    if (currentStepData) {
+      currentStepData.code = currentCode.trim();
+      parsedSteps.push(currentStepData);
+    }
+
+    setTitle(parsedTitle);
+    setGoal(parsedGoal);
+    setSteps(parsedSteps);
   };
 
-  const calculateScore = (before: CodeMetrics, after: CodeMetrics): number => {
-    const beforeScore =
-      before.functions +
-      before.errorHandling +
-      before.documentation +
-      before.validation +
-      before.security;
-    const afterScore =
-      after.functions +
-      after.errorHandling +
-      after.documentation +
-      after.validation +
-      after.security;
-    return Math.round(
-      ((afterScore - beforeScore) / Math.max(beforeScore, 1)) * 100
-    );
-  };
-
-  const generateFeedback = (userPrompt: string, score: number): string => {
-    if (score > 100) return "Perfect!";
-    if (score > 50) return "Good work!";
-    if (score > 0) return "Better!";
-    return "Try again";
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg">Analyzing...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!result) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg mb-4">No data</p>
-          <Button onClick={() => (window.location.href = "/")}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const beforeScore =
-    result.before.functions +
-    result.before.errorHandling +
-    result.before.security;
-  const afterScore =
-    result.after.functions + result.after.errorHandling + result.after.security;
+  const progressPercentage =
+    steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto p-6 max-w-4xl">
-        {/* Results */}
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-4">
-            {result.score > 100
-              ? "🏆"
-              : result.score > 50
-              ? "✨"
-              : result.score > 0
-              ? "💪"
-              : "🎯"}
-          </div>
-          <h1 className="text-2xl font-bold mb-2">{result.feedback}</h1>
-          <div className="flex items-center justify-center gap-4 text-lg">
-            <span className="text-red-600 font-mono">{beforeScore}</span>
-            <span>→</span>
-            <span className="text-green-600 font-mono">{afterScore}</span>
-            <span className="text-purple-600 font-mono">
-              ({result.score > 0 ? "+" : ""}
-              {result.score}%)
-            </span>
-          </div>
-        </div>
-
-        {/* Code Comparison */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm">"{result.originalPrompt}"</span>
+      {/* Header */}
+      <div className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Home
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                <h1 className="text-xl font-bold">
+                  {title || "Loading Curriculum..."}
+                </h1>
+              </div>
             </div>
-            <div className="border rounded-lg overflow-hidden h-48">
-              <Editor
-                height="100%"
-                defaultLanguage="python"
-                language="python"
-                theme="vs-dark"
-                value={result.originalCode}
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  lineNumbers: "on",
-                  folding: false,
-                  wordWrap: "on",
-                }}
-              />
-            </div>
+            <Badge variant="outline">
+              Step {currentStep + 1} of {steps.length}
+            </Badge>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg border p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm">"{result.improvedPrompt}"</span>
-            </div>
-            <div className="border rounded-lg overflow-hidden h-48">
-              <Editor
-                height="100%"
-                defaultLanguage="python"
-                language="python"
-                theme="vs-dark"
-                value={result.improvedCode}
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  lineNumbers: "on",
-                  folding: false,
-                  wordWrap: "on",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button variant="outline" onClick={() => window.history.back()}>
-            <RefreshCw className="w-4 h-4 mr-1" />
-            Try Again
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/leaderboard">
-              <Trophy className="w-4 h-4 mr-1" />
-              Leaderboard
-            </Link>
-          </Button>
-          <Button onClick={() => (window.location.href = "/")}>
-            <Home className="w-4 h-4 mr-1" />
-            Next Challenge
-          </Button>
         </div>
       </div>
 
-      {/* Name Input Modal */}
-      <NameInputModal
-        isOpen={showNameModal}
-        score={result.score}
-        onSubmit={submitToLeaderboard}
-        onSkip={() => setShowNameModal(false)}
-        isSubmitting={isSubmittingScore}
-      />
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Sidebar - Curriculum Overview */}
+          <div className="lg:col-span-1">
+            <div className="bg-card rounded-lg border p-6 sticky top-8">
+              <h2 className="font-semibold mb-4">Learning Path</h2>
+              {goal && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Goal
+                  </h3>
+                  <p className="text-sm">{goal}</p>
+                </div>
+              )}
+
+              <div className="mb-4">
+                <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                  <span>Progress</span>
+                  <span>
+                    {currentStep + 1}/{steps.length}
+                  </span>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+
+              <div className="space-y-2">
+                {steps.map((step, index) => (
+                  <Button
+                    key={index}
+                    variant={index === currentStep ? "default" : "ghost"}
+                    size="sm"
+                    className="w-full justify-start h-auto p-3"
+                    onClick={() => setCurrentStep(index)}
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="flex-shrink-0">
+                        {index < currentStep ? (
+                          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                        ) : index === currentStep ? (
+                          <Play className="w-5 h-5" />
+                        ) : (
+                          <div className="w-5 h-5 border-2 border-muted-foreground rounded-full"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="font-medium text-sm truncate">{step.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Step {index + 1}
+                        </div>
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {steps.length > 0 && steps[currentStep] && (
+              <div className="bg-card rounded-lg border p-8">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold mb-2">
+                    {steps[currentStep].title}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    {steps[currentStep].learn}
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">
+                      AI Prompt for This Step
+                    </h3>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <p className="text-blue-800 dark:text-blue-200">
+                        {steps[currentStep].prompt}
+                      </p>
+                    </div>
+                  </div>
+
+                  {steps[currentStep].code && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">
+                        Expected Code Example
+                      </h3>
+                      <pre className="bg-gray-50 dark:bg-gray-900 border rounded-lg p-4 overflow-x-auto">
+                        <code className="text-sm">
+                          {steps[currentStep].code}
+                        </code>
+                      </pre>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <Button asChild>
+                      <Link
+                        href={`/editor?prompt=${encodeURIComponent(
+                          steps[currentStep].prompt
+                        )}&code=${encodeURIComponent(steps[currentStep].code)}`}
+                      >
+                        Start Coding in Editor
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/">Try Different Curriculum</Link>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex justify-between mt-8 pt-6 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                    disabled={currentStep === 0}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Previous Step
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      setCurrentStep(
+                        Math.min(steps.length - 1, currentStep + 1)
+                      )
+                    }
+                    disabled={currentStep === steps.length - 1}
+                  >
+                    Next Step
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default function PromptLabPage() {
+function CurriculumLoading() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <Suspense fallback={<div>Loading...</div>}>
-        <PromptLab />
-      </Suspense>
-    </ThemeProvider>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading curriculum...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function CurriculumPage() {
+  return (
+    <Suspense fallback={<CurriculumLoading />}>
+      <CurriculumContent />
+    </Suspense>
   );
 }
