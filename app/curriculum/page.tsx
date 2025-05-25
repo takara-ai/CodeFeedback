@@ -145,9 +145,28 @@ function PromptLab() {
           messages: [
             {
               role: "user",
-              content: `Count code metrics. Return ONLY JSON:
+              content: `You are a code analysis expert. Count these specific metrics in the Python code below.
+
+COUNTING RULES:
+- functions: Count def statements (including methods in classes)
+- errorHandling: Count try/except blocks, raise statements, input validation
+- documentation: Count docstrings (""" or '''), meaningful comments (#)
+- validation: Count input checks, type validation, assertion statements
+- security: Count password hashing, input sanitization, authentication checks
+
+EXAMPLES:
+def calculate(x):
+    """Calculate something"""  # +1 documentation
+    if x < 0:                  # +1 validation
+        raise ValueError()     # +1 errorHandling
+    return x * 2
+
+Counts: functions=1, errorHandling=1, documentation=1, validation=1, security=0
+
+CODE TO ANALYZE:
 ${code}
 
+Return ONLY valid JSON with exact counts:
 {
   "lines": ${code.split("\n").filter((line) => line.trim()).length},
   "functions": 2,
@@ -166,15 +185,45 @@ ${code}
         .replace(/```json\n?|\n?```/g, "")
         .replace(/^[^{]*/, "")
         .replace(/[^}]*$/, "");
-      return JSON.parse(content);
-    } catch {
+      const parsed = JSON.parse(content);
+
+      // Validate metrics are reasonable numbers
       return {
-        lines: code.split("\n").filter((line) => line.trim()).length,
-        functions: (code.match(/def |class /g) || []).length,
-        errorHandling: (code.match(/try:|except|if.*error/gi) || []).length,
-        documentation: (code.match(/"""|'''|#/g) || []).length,
-        validation: (code.match(/validate|check|isinstance/gi) || []).length,
-        security: (code.match(/auth|hash|encrypt/gi) || []).length,
+        lines: Math.max(0, parsed.lines || 0),
+        functions: Math.max(0, parsed.functions || 0),
+        errorHandling: Math.max(0, parsed.errorHandling || 0),
+        documentation: Math.max(0, parsed.documentation || 0),
+        validation: Math.max(0, parsed.validation || 0),
+        security: Math.max(0, parsed.security || 0),
+      };
+    } catch {
+      // Improved fallback with better regex patterns
+      const lines = code.split("\n").filter((line) => line.trim()).length;
+      return {
+        lines,
+        functions: Math.max(0, (code.match(/def\s+\w+/g) || []).length),
+        errorHandling: Math.max(
+          0,
+          (
+            code.match(
+              /try:|except|raise\s+\w+|if.*(?:error|invalid|none)/gi
+            ) || []
+          ).length
+        ),
+        documentation: Math.max(
+          0,
+          (code.match(/"""[\s\S]*?"""|'''[\s\S]*?'''|#[^\n]*/g) || []).length
+        ),
+        validation: Math.max(
+          0,
+          (code.match(/if\s+.*(?:not|is\s+none|<|>|==|!=)|assert\s+/gi) || [])
+            .length
+        ),
+        security: Math.max(
+          0,
+          (code.match(/hash|encrypt|auth|password|token|bcrypt|jwt/gi) || [])
+            .length
+        ),
       };
     }
   };
@@ -254,21 +303,10 @@ print(calculate())`,
   };
 
   const generateFeedback = (userPrompt: string, score: number): string => {
-    const hints = [];
-
-    if (!userPrompt.includes("error") && !userPrompt.includes("validation"))
-      hints.push("Add errors");
-    if (!userPrompt.includes("document") && !userPrompt.includes("comment"))
-      hints.push("Want docs");
-    if (!userPrompt.includes("security") && !userPrompt.includes("validate"))
-      hints.push("Add security");
-    if (!userPrompt.includes("specific") && !userPrompt.includes("detail"))
-      hints.push("Be specific");
-
     if (score > 100) return "Perfect!";
-    if (score > 50) return `✨ Good! Try: ${hints.slice(0, 2).join(", ")}`;
-    if (score > 0) return `💪 Better! Add: ${hints.slice(0, 2).join(", ")}`;
-    return `🎯 Try: ${hints.slice(0, 2).join(", ")}`;
+    if (score > 50) return "Good work!";
+    if (score > 0) return "Better!";
+    return "Try again";
   };
 
   if (loading) {
