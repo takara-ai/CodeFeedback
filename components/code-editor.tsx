@@ -98,8 +98,8 @@ export function CodeEditor({
                 p5.js Visual Output
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-full">
-              <div className="w-full h-full bg-white rounded overflow-hidden border" style={{ minHeight: "500px" }}>
+            <CardContent className="h-[93%]">
+              <div className="w-full h-full bg-white rounded overflow-hidden border" >
                 {p5Code ? (
                   <P5Canvas
                     code={p5Code}

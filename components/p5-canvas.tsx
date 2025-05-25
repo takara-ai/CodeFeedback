@@ -49,7 +49,7 @@ export function P5Canvas({ code, onError, onSuccess }: P5CanvasProps) {
   return (
     <iframe
       ref={iframeRef}
-      className="w-full h-full border-0 h-200"
+      className="h-full w-full border-0"
       title="p5.js Canvas"
     />
   );

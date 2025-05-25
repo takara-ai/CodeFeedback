@@ -18,7 +18,7 @@ let speedY = 2;
 let ballSize = 50;
 
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(600, 500);
 }
 
 function draw() {
