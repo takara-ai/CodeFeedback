@@ -15,7 +15,7 @@ A Duolingo-style app for learning prompt engineering through hands-on practice.
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (package manager)
+- pnpm (recommended) or npm
 
 ### Installation
 
@@ -38,23 +38,22 @@ pnpm install
 cp .env.example .env.local
 ```
 
-4. Add your Mistral API key to `.env.local`:
+4. Add your OpenAI API key to `.env.local`:
 
 ```
-MISTRAL_API_KEY=your_mistral_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-### Leaderboard Setup (Required)
+### Leaderboard Setup (Optional)
 
-For persistent leaderboards using Upstash Redis:
+For persistent leaderboards on Vercel:
 
-1. **Create an Upstash Redis database** at [upstash.com](https://upstash.com)
-2. **Add environment variables** in Vercel or your `.env.local`:
-   - `UPSTASH_REDIS_REST_URL`
-   - `UPSTASH_REDIS_REST_TOKEN`
+1. **Enable Vercel KV** in your Vercel dashboard
+2. **Add environment variables** in Vercel:
+   - `KV_REST_API_URL`
+   - `KV_REST_API_TOKEN`
 
-> **Note**: Upstash Redis is required for the leaderboard functionality to work.
-
+> **Note**: The app works without Vercel KV using in-memory storage for local development.
 ### Development
 
 ```bash
@@ -77,19 +76,12 @@ Deploy to Vercel with one click:
 4. **Score**: Get points based on code quality improvements
 5. **Compete**: Add your name to the leaderboard!
 
-### Scoring System
-
-- **Cumulative Scoring**: Your scores accumulate each time you play! Submit multiple challenges to climb higher on the leaderboard.
-- **Code Quality Metrics**: Scores are based on improvements in functions, error handling, documentation, validation, and security.
-- **Percentage Improvement**: Scores represent the percentage improvement from the original code to your improved version.
-
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
-- **Package Manager**: pnpm
 - **Styling**: Tailwind CSS + shadcn/ui
-- **Database**: Upstash Redis for leaderboards
-- **AI**: Mistral AI for code generation and analysis
+- **Database**: Vercel KV (Redis) for leaderboards
+- **AI**: OpenAI GPT for code generation and analysis
 - **Deployment**: Vercel
 
 ## Contributing

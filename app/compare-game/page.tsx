@@ -32,7 +32,7 @@ export default function CompareGamePage() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [usedTopics, setUsedTopics] = useState<string[]>([]);
   const [isGeneratingNext, setIsGeneratingNext] = useState(false);
-  
+
   // Python execution state
   const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
   const [pyodideLoading, setPyodideLoading] = useState(false);
@@ -41,7 +41,7 @@ export default function CompareGamePage() {
   const [rightOutput, setRightOutput] = useState<string>("");
   const [isRunningLeft, setIsRunningLeft] = useState(false);
   const [isRunningRight, setIsRunningRight] = useState(false);
-  
+
   // p5.js canvas state
   const [leftP5Code, setLeftP5Code] = useState<string>("");
   const [rightP5Code, setRightP5Code] = useState<string>("");
@@ -111,7 +111,7 @@ export default function CompareGamePage() {
 
   const runCode = async (code: string, side: 'left' | 'right') => {
     const isP5js = currentChallengeData?.language === 'javascript';
-    
+
     if (isP5js) {
       // Handle p5.js execution
       if (side === 'left') {
@@ -127,7 +127,7 @@ export default function CompareGamePage() {
       }
       return;
     }
-    
+
     // Handle Python execution
     if (pyodideLoading) {
       const output = "⏳ Python environment is still loading... Please wait.";
@@ -163,11 +163,9 @@ export default function CompareGamePage() {
 import sys
 from io import StringIO
 import traceback
-
 # Capture stdout
 stdout = sys.stdout
 sys.stdout = StringIO()
-
 ${code}
     
 sys.stdout.getvalue()
@@ -210,20 +208,17 @@ sys.stdout.getvalue()
             {
               role: "user",
               content: `Generate 12 diverse programming challenge topics for teaching users how to evaluate AI-generated code quality. Include both Python and p5.js challenges. Return ONLY valid JSON array:
-
 [
   "Python: Create a function to check if a text contains bad words",
   "p5.js: Create a bouncing ball animation",
   "..."
 ]
-
 Topics should focus on PRACTICAL, EVERYDAY programming tasks that help users learn to spot:
 - Code readability issues
 - Basic performance problems
 - Missing error handling
 - Poor variable naming
 - Code that's hard to understand or maintain
-
 PYTHON topics should cover:
 - Text processing and validation
 - Basic data manipulation (lists, dictionaries)
@@ -231,7 +226,6 @@ PYTHON topics should cover:
 - User input handling
 - Common utility functions
 - Data formatting and cleaning
-
 P5.JS topics should cover:
 - Simple animations and movement
 - Basic drawing and shapes
@@ -239,7 +233,6 @@ P5.JS topics should cover:
 - Color and visual effects
 - Simple games or simulations
 - Creative coding patterns
-
 Make each topic:
 - Practical and relatable (things people actually code)
 - Easy to understand without complex math/algorithm knowledge
@@ -255,12 +248,12 @@ Make each topic:
 
       const data = await response.json();
       let content = data.content;
-      
+
       // Clean up the response to extract JSON
       content = content.replace(/```json\n?|\n?```/g, "");
       content = content.replace(/^[^[]*/, "");
       content = content.replace(/[^\]]*$/, "");
-      
+
       const topics = JSON.parse(content);
       return Array.isArray(topics) ? topics : [];
     } catch (error) {
@@ -285,11 +278,11 @@ Make each topic:
 
   const initializeGame = async () => {
     setGameState('loading');
-    
+
     // Generate topics for this game session
     const topics = await generateTopics();
     setAvailableTopics(topics);
-    
+
     // Generate first challenge
     await generateNewChallenge(topics);
     setGameState('playing');
@@ -298,16 +291,16 @@ Make each topic:
 
   const generateNewChallenge = async (topics?: string[]) => {
     const topicsToUse = topics || availableTopics;
-    
+
     // Get available topics (not used yet)
     const unusedTopics = topicsToUse.filter(topic => !usedTopics.includes(topic));
-    
+
     // If we've used all topics, reset the pool
     const finalTopics = unusedTopics.length > 0 ? unusedTopics : topicsToUse;
-    
+
     // Select random topic
     const selectedTopic = finalTopics[Math.floor(Math.random() * finalTopics.length)];
-    
+
     try {
       const challenge = await generateChallenge(selectedTopic);
       setCurrentChallengeData(challenge);
@@ -340,7 +333,7 @@ def example():
     const isP5js = prompt.startsWith('p5.js:');
     const language = isP5js ? 'javascript' : 'python';
     const cleanPrompt = prompt.replace(/^(Python:|p5\.js:)\s*/, '');
-    
+
     const response = await fetch("/api/chat-json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -349,9 +342,7 @@ def example():
           {
             role: "user",
             content: `Generate a code quality evaluation challenge for: "${cleanPrompt}" in ${language.toUpperCase()}
-
 Create two ${language.toUpperCase()} implementations - one with good practices and one with poor practices. This is for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON:
-
 {
   "prompt": "${cleanPrompt}",
   "goodCode": "${isP5js ? 'function setup() {\n  // Clean, readable implementation\n}\n\nfunction draw() {\n  // Animation code\n}' : 'def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())'}",
@@ -362,15 +353,12 @@ Create two ${language.toUpperCase()} implementations - one with good practices a
   },
   "language": "${language}"
 }
-
 IMPORTANT: 
 - Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
 - Both implementations must be FUNCTIONAL and ${isP5js ? 'create visible animations/graphics' : 'produce VISIBLE OUTPUT when run'}
 ${isP5js ? '- For p5.js: Include setup() and draw() functions, use createCanvas(), and create visible graphics' : '- Include test code that calls the function and prints results so users can see how it works'}
 - Make the output meaningful and comparable between versions
-
 Focus on PRACTICAL code quality issues that anyone can understand:
-
 BAD CODE should demonstrate:
 - Poor variable names (x, data, stuff, temp, a, b, c)
 - Missing or unclear comments
@@ -382,7 +370,6 @@ BAD CODE should demonstrate:
 - ${isP5js ? 'Poor organization of setup/draw logic' : 'Missing input validation'}
 - Repetitive code patterns
 - Confusing logic flow
-
 GOOD CODE should demonstrate:
 - Clear, descriptive variable and function names
 - ${isP5js ? 'Proper setup/draw organization and efficient graphics calls' : 'Proper error handling for common issues'}
@@ -393,7 +380,6 @@ GOOD CODE should demonstrate:
 - Single responsibility (function does one thing well)
 - Easy to understand logic flow
 - Well-organized code structure
-
 Make both implementations FUNCTIONAL and correct, but focus on code QUALITY differences that affect readability, maintainability, and professionalism.`
           },
         ],
@@ -402,12 +388,12 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
 
     const data = await response.json();
     let content = data.content;
-    
+
     // Clean up the response to extract JSON
     content = content.replace(/```json\n?|\n?```/g, "");
     content = content.replace(/^[^{]*/, "");
     content = content.replace(/[^}]*$/, "");
-    
+
     try {
       const result = JSON.parse(content);
       return {
@@ -424,11 +410,11 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
     setSelectedCode(choice);
     const correct = (choice === 'left' && leftIsGood) || (choice === 'right' && !leftIsGood);
     setIsCorrect(correct);
-    
+
     if (correct) {
       setScore(score + 1);
     }
-    
+
     setGameState('revealed');
   };
 
@@ -438,16 +424,16 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
       setCurrentChallenge(currentChallenge + 1);
       setSelectedCode(null);
       setIsCorrect(null);
-      
+
       // Clear outputs
       setLeftOutput("");
       setRightOutput("");
       setLeftP5Code("");
       setRightP5Code("");
-      
+
       // Generate next challenge
       await generateNewChallenge();
-      
+
       setGameState('playing');
       setLeftIsGood(Math.random() > 0.5);
       setIsGeneratingNext(false);
@@ -462,13 +448,13 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
     setSelectedCode(null);
     setIsCorrect(null);
     setUsedTopics([]);
-    
+
     // Clear outputs
     setLeftOutput("");
     setRightOutput("");
     setLeftP5Code("");
     setRightP5Code("");
-    
+
     initializeGame();
   };
 
@@ -525,7 +511,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                    "Keep practicing! Code quality evaluation is a valuable skill."}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{totalChallenges}</div>
@@ -580,7 +566,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
           <p className="text-gray-600 mb-4">
             Learn to spot good vs poor code quality! Choose the better-written version first, then run both to see how they work.
           </p>
-          
+
           <div className="flex justify-center items-center gap-6">
             <Badge variant="outline" className="text-lg px-4 py-2">
               <Target className="mr-2 h-4 w-4" />
@@ -654,7 +640,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   }}
                 />
               </div>
-              
+
               {/* Run Button */}
               <Button 
                 onClick={() => runCode(leftCode, 'left')}
@@ -699,7 +685,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   </div>
                 </div>
               )}
-              
+
               {gameState === 'playing' && (
                 <Button 
                   onClick={() => handleChoice('left')}
@@ -709,7 +695,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   Choose Version A
                 </Button>
               )}
-              
+
               {gameState === 'revealed' && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">
@@ -769,7 +755,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   }}
                 />
               </div>
-              
+
               {/* Run Button */}
               <Button 
                 onClick={() => runCode(rightCode, 'right')}
@@ -814,7 +800,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   </div>
                 </div>
               )}
-              
+
               {gameState === 'playing' && (
                 <Button 
                   onClick={() => handleChoice('right')}
@@ -824,7 +810,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   Choose Version B
                 </Button>
               )}
-              
+
               {gameState === 'revealed' && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">
@@ -844,13 +830,13 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                 {isCorrect ? '🎉 Correct!' : '❌ Incorrect!'}
               </div>
             )}
-            
+
             {isGeneratingNext && (
               <div className="text-2xl font-bold mb-4 text-blue-600">
                 🤖 AI is creating your next challenge...
               </div>
             )}
-            
+
             <Button onClick={nextChallenge} size="lg" disabled={isGeneratingNext}>
               {isGeneratingNext ? (
                 <>

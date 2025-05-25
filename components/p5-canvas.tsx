@@ -47,7 +47,7 @@ export function P5Canvas({ code, onError, onSuccess }: P5CanvasProps) {
 
       const blob = new Blob([htmlContent], { type: "text/html" });
       const url = URL.createObjectURL(blob);
-      
+
       setCurrentUrl(url);
       iframeRef.current.src = url;
       onSuccess?.();
@@ -80,13 +80,13 @@ export function P5Canvas({ code, onError, onSuccess }: P5CanvasProps) {
         className="h-full w-full border-0"
         title="p5.js Canvas"
       />
-      
+
       {/* Restart Button */}
       <Button
         onClick={restartAnimation}
         className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white p-2 rounded-md transition-all duration-200 flex items-center gap-1 text-sm font-medium shadow-lg backdrop-blur-sm"
         title="Restart Animation"
-        
+
       >
         <RotateCcw size={16} />
         <span className="hidden sm:inline">Restart</span>
