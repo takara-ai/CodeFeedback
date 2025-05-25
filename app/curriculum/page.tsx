@@ -9,6 +9,7 @@ import { NameInputModal } from "@/components/name-input-modal";
 import { RefreshCw, Home, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { Editor } from "@monaco-editor/react";
 
 interface CodeMetrics {
   lines: number;
@@ -372,10 +373,23 @@ print(calculate())`,
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
               <span className="text-sm">"{result.originalPrompt}"</span>
             </div>
-            <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
-              <pre className="text-red-400 whitespace-pre-wrap break-words">
-                {result.originalCode}
-              </pre>
+            <div className="border rounded-lg overflow-hidden h-48">
+              <Editor
+                height="100%"
+                defaultLanguage="python"
+                language="python"
+                theme="vs-dark"
+                value={result.originalCode}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  lineNumbers: "on",
+                  folding: false,
+                  wordWrap: "on",
+                }}
+              />
             </div>
           </div>
 
@@ -384,10 +398,23 @@ print(calculate())`,
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-sm">"{result.improvedPrompt}"</span>
             </div>
-            <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
-              <pre className="text-green-400 whitespace-pre-wrap break-words">
-                {result.improvedCode}
-              </pre>
+            <div className="border rounded-lg overflow-hidden h-48">
+              <Editor
+                height="100%"
+                defaultLanguage="python"
+                language="python"
+                theme="vs-dark"
+                value={result.improvedCode}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  lineNumbers: "on",
+                  folding: false,
+                  wordWrap: "on",
+                }}
+              />
             </div>
           </div>
         </div>
