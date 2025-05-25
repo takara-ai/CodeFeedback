@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, RefreshCw, Star, TrendingUp, CheckCircle } from "lucide-react";
+import {
+  Send,
+  RefreshCw,
+  Star,
+  TrendingUp,
+  CheckCircle,
+  Target,
+} from "lucide-react";
 import { PromptGrade, CodeAssessment, Lesson } from "@/types/vibe-learning";
 import { ProgressTracker } from "@/lib/progress-tracker";
 import { cleanAndParseJSON } from "@/lib/json-cleaner";
@@ -13,6 +20,21 @@ import { cleanAndParseJSON } from "@/lib/json-cleaner";
 interface LessonContentProps {
   lesson: Lesson;
   originalPrompt?: string;
+  baselineGrade?: PromptGrade | null;
+  lessonHistory?: Array<{
+    lessonId: number;
+    prompt: string;
+    code: string;
+    promptGrade: PromptGrade;
+    codeAssessment: CodeAssessment;
+  }>;
+  previousLesson?: {
+    lessonId: number;
+    prompt: string;
+    code: string;
+    promptGrade: PromptGrade;
+    codeAssessment: CodeAssessment;
+  };
   onLessonComplete?: (
     lessonId: number,
     improvedPrompt: string,
@@ -27,6 +49,9 @@ interface LessonContentProps {
 export function LessonContent({
   lesson,
   originalPrompt: originalPromptProp,
+  baselineGrade,
+  lessonHistory = [],
+  previousLesson,
   onLessonComplete,
 }: LessonContentProps) {
   const [userPrompt, setUserPrompt] = useState(originalPromptProp || "");
@@ -39,12 +64,21 @@ export function LessonContent({
   const originalPrompt =
     originalPromptProp || lesson.challenge || "Build an expense tracker";
 
-  // Update user prompt when original prompt prop changes
+  // Update user prompt when original prompt prop changes, but only for first lesson
   useEffect(() => {
-    if (originalPromptProp) {
+    if (originalPromptProp && lesson.id === 1) {
       setUserPrompt(originalPromptProp);
+    } else if (previousLesson && lesson.id > 1) {
+      // For subsequent lessons, start with the previous lesson's improved prompt
+      setUserPrompt(previousLesson.prompt);
     }
-  }, [originalPromptProp]);
+  }, [originalPromptProp, lesson.id, previousLesson]);
+
+  const getGradeBadge = (score: number) => {
+    if (score >= 80) return <Badge className="bg-green-500">Excellent</Badge>;
+    if (score >= 60) return <Badge className="bg-yellow-500">Good</Badge>;
+    return <Badge className="bg-red-500">Needs Work</Badge>;
+  };
 
   const handleImproveAndGrade = async () => {
     if (!userPrompt.trim() || isProcessing) return;
@@ -52,9 +86,15 @@ export function LessonContent({
     setIsProcessing(true);
 
     try {
+      // Get comparison context for grading
+      let comparisonContext = `Original: "${originalPrompt}"`;
+      if (previousLesson) {
+        comparisonContext = `Previous iteration: "${previousLesson.prompt}"`;
+      }
+
       // Grade the prompt and generate code in parallel
       const [gradingResponse, codeResponse] = await Promise.all([
-        // Grade the improved prompt
+        // Grade the improved prompt with comparison context
         fetch("/api/chat-json", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -62,18 +102,30 @@ export function LessonContent({
             messages: [
               {
                 role: "user",
-                content: `Grade this improved prompt on clarity, specificity, and context (0-100 each). Be very concise.
+                content: `Grade this improved prompt for lesson ${
+                  lesson.id
+                }: "${lesson.title}". Compare against the ${
+                  previousLesson ? "previous iteration" : "original"
+                }.
 
-Original: "${originalPrompt}"
-Improved: "${userPrompt}"
+${comparisonContext}
+Current: "${userPrompt}"
+
+Focus: ${(lesson as any).improvementFocus || lesson.description}
 
 {
   "score": 85,
   "clarity": 80,
   "specificity": 90,
   "context": 85,
-  "feedback": "Good improvement in specificity. Add more context about error handling.",
-  "suggestions": ["Add error handling details", "Specify data validation", "Include edge cases"]
+  "feedback": "Good improvement in ${
+    (lesson as any).targetMetric || "specificity"
+  }. ${
+                  lesson.id > 1
+                    ? "Building well on previous improvements."
+                    : "Solid foundation for future iterations."
+                }",
+  "suggestions": ["Specific suggestion 1", "Specific suggestion 2"]
 }`,
               },
             ],
@@ -88,9 +140,11 @@ Improved: "${userPrompt}"
             messages: [
               {
                 role: "user",
-                content: `Generate Python code based on this prompt. Return ONLY the Python code:
-
-${userPrompt}`,
+                content: `Generate Python code based on this prompt. ${
+                  previousLesson
+                    ? `Improve upon this previous version:\n\nPrevious Code:\n${previousLesson.code}\n\nNew Requirements:`
+                    : "Return ONLY the Python code:"
+                }\n\n${userPrompt}`,
               },
             ],
           }),
@@ -136,7 +190,7 @@ ${userPrompt}`,
         }
       }
 
-      // Auto-assess the generated code
+      // Auto-assess the generated code with comparison
       setTimeout(() => assessGeneratedCode(code), 1000);
     } catch (error) {
       console.error("Error in improve and grade:", error);
@@ -147,6 +201,11 @@ ${userPrompt}`,
 
   const assessGeneratedCode = async (code: string) => {
     try {
+      let comparisonText = "";
+      if (previousLesson) {
+        comparisonText = `\n\nPrevious Code Quality: ${previousLesson.codeAssessment.score}/100\nPrevious Code:\n${previousLesson.code}\n\nCurrent Code:`;
+      }
+
       const response = await fetch("/api/chat-json", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,17 +213,25 @@ ${userPrompt}`,
           messages: [
             {
               role: "user",
-              content: `Assess this code quality briefly (0-100). Be concise.
+              content: `Assess this code quality briefly (0-100). ${
+                previousLesson
+                  ? "Compare to the previous iteration and note improvements/regressions."
+                  : "This is the baseline assessment."
+              }
 
-Prompt: "${userPrompt}"
-Code: ${code}
+Prompt: "${userPrompt}"${comparisonText}
+${code}
 
 {
   "score": 82,
   "functionality": 85,
   "quality": 80,
   "efficiency": 81,
-  "feedback": "Good structure. Consider adding error handling for edge cases."
+  "feedback": "${
+    previousLesson
+      ? "Improvement over previous version."
+      : "Good baseline implementation."
+  } Consider adding error handling for edge cases."
 }`,
             },
           ],
@@ -195,30 +262,82 @@ Code: ${code}
     }
   };
 
-  const getGradeBadge = (score: number) => {
-    if (score >= 80) return <Badge className="bg-green-500">Excellent</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-500">Good</Badge>;
-    return <Badge className="bg-red-500">Needs Work</Badge>;
-  };
-
   return (
     <div className="h-full grid grid-rows-[auto_1fr_auto] gap-6 p-6">
-      {/* Header - Original Prompt */}
+      {/* Header - Original Prompt with Baseline Grade */}
       <Card className="bg-gray-50 dark:bg-gray-900">
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <h3 className="font-medium text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Original Prompt
+                {lesson.id === 1
+                  ? "Original Prompt"
+                  : `Lesson ${lesson.id - 1} Result`}
               </h3>
               <p className="text-gray-900 dark:text-gray-100">
-                "{originalPrompt}"
+                "
+                {lesson.id === 1
+                  ? originalPrompt
+                  : previousLesson?.prompt || originalPrompt}
+                "
               </p>
             </div>
-            <Badge variant="outline" className="text-xs">
-              Baseline
-            </Badge>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant="outline" className="text-xs">
+                {lesson.id === 1 ? "Baseline" : `Lesson ${lesson.id - 1}`}
+              </Badge>
+              {lesson.id === 1 && baselineGrade && (
+                <div className="text-right">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Baseline Score
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {baselineGrade.score}/100
+                    </span>
+                    {getGradeBadge(baselineGrade.score)}
+                  </div>
+                </div>
+              )}
+              {lesson.id > 1 && previousLesson && (
+                <div className="text-right">
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Previous Score
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {previousLesson.promptGrade.score}/100
+                    </span>
+                    {getGradeBadge(previousLesson.promptGrade.score)}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Show baseline feedback for first lesson */}
+          {lesson.id === 1 && baselineGrade?.feedback && (
+            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Areas for improvement:</strong> {baselineGrade.feedback}
+              </p>
+            </div>
+          )}
+
+          {/* Show progression from previous lesson */}
+          {lesson.id > 1 && previousLesson && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Building on Lesson {lesson.id - 1}
+                </span>
+              </div>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Previous code quality: {previousLesson.codeAssessment.score}/100
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -230,9 +349,62 @@ Code: ${code}
             <CardContent className="p-4">
               <div className="mb-4">
                 <h2 className="font-semibold text-lg mb-2">{lesson.title}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {(lesson as any).improvementFocus || lesson.description}
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {lesson.description}
                 </p>
+
+                {/* Lesson-specific guidance */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Lesson {lesson.id} Focus:{" "}
+                      {(lesson as any).improvementFocus}
+                    </span>
+                  </div>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {lesson.challenge}
+                  </p>
+                </div>
+
+                {/* Show lesson-specific tips based on targetMetric */}
+                {(lesson as any).targetMetric && (
+                  <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 mb-4">
+                    <div className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                      💡 Tips for improving {(lesson as any).targetMetric}:
+                    </div>
+                    <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                      {(lesson as any).targetMetric === "clarity" && (
+                        <>
+                          <li>• Use simple, direct language</li>
+                          <li>• Break down complex requirements into steps</li>
+                          <li>• Avoid ambiguous terms</li>
+                        </>
+                      )}
+                      {(lesson as any).targetMetric === "specificity" && (
+                        <>
+                          <li>• Include exact data types and formats</li>
+                          <li>• Specify input/output requirements</li>
+                          <li>• Define edge cases and constraints</li>
+                        </>
+                      )}
+                      {(lesson as any).targetMetric === "context" && (
+                        <>
+                          <li>• Explain the use case and environment</li>
+                          <li>• Describe user interactions</li>
+                          <li>• Mention integration requirements</li>
+                        </>
+                      )}
+                      {(lesson as any).targetMetric === "efficiency" && (
+                        <>
+                          <li>• Ask for performance considerations</li>
+                          <li>• Specify scalability requirements</li>
+                          <li>• Request optimization strategies</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

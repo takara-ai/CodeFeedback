@@ -4,402 +4,317 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
-import { LessonContent } from "@/components/lesson-content";
-import { ComparisonView } from "@/components/comparison-view";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  BookOpen,
-  Target,
-  CheckCircle,
-  Clock,
-  Lock,
-  Trophy,
-  Zap,
-  TrendingUp,
-} from "lucide-react";
-import { lessonGenerator, GeneratedLesson } from "@/lib/lesson-generator";
-import { ProgressTracker } from "@/lib/progress-tracker";
-import { PromptGrade, CodeAssessment } from "@/types/vibe-learning";
+import { RefreshCw, Home } from "lucide-react";
 
-interface LessonState {
-  id: number;
-  status: "locked" | "current" | "completed";
-  score?: number;
+interface CodeMetrics {
+  lines: number;
+  functions: number;
+  errorHandling: number;
+  documentation: number;
+  validation: number;
+  security: number;
 }
 
-interface ComparisonData {
-  promptComparison: {
-    original: string;
-    final: string;
-    improvements: string[];
-  };
-  codeComparison: {
-    originalQuality: number;
-    finalQuality: number;
-    improvementPercentage: number;
-    keyEnhancements: string[];
-  };
-  learningJourney: {
-    lessonsCompleted: number;
-    totalImprovements: number;
-    biggestWin: string;
-  };
+interface PromptResult {
+  originalCode: string;
+  improvedCode: string;
+  originalPrompt: string;
+  improvedPrompt: string;
+  score: number;
+  feedback: string;
+  before: CodeMetrics;
+  after: CodeMetrics;
 }
 
-function CurriculumContent() {
-  const [lessons, setLessons] = useState<GeneratedLesson[]>([]);
-  const [currentLessonId, setCurrentLessonId] = useState(1);
-  const [lessonStates, setLessonStates] = useState<LessonState[]>([]);
-  const [progressTracker, setProgressTracker] =
-    useState<ProgressTracker | null>(null);
-  const [isGeneratingLessons, setIsGeneratingLessons] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
-  const [comparisonData, setComparisonData] = useState<ComparisonData | null>(
-    null
-  );
-  const [originalCode, setOriginalCode] = useState("");
-  const [finalCode, setFinalCode] = useState("");
-  const [originalPrompt, setOriginalPrompt] = useState("");
-
+function PromptLab() {
+  const [result, setResult] = useState<PromptResult | null>(null);
+  const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const originalPromptParam = searchParams.get("originalPrompt");
-    const originalCodeParam = searchParams.get("originalCode");
+    const originalPrompt = searchParams.get("originalPrompt");
+    const originalCode = searchParams.get("originalCode");
+    const userPrompt = searchParams.get("userPrompt");
 
-    if (originalPromptParam && originalCodeParam) {
-      setOriginalPrompt(originalPromptParam);
-      initializeDynamicCurriculum(originalPromptParam, originalCodeParam);
+    if (originalPrompt && originalCode && userPrompt) {
+      runAnalysis(originalPrompt, originalCode, userPrompt);
     }
   }, [searchParams]);
 
-  const initializeDynamicCurriculum = async (
+  const runAnalysis = async (
     originalPrompt: string,
-    originalCode: string
+    originalCode: string,
+    userPrompt: string
   ) => {
-    setIsGeneratingLessons(true);
-    setOriginalCode(originalCode);
+    setLoading(true);
 
     try {
-      // Initialize progress tracker
-      const tracker = new ProgressTracker(originalPrompt, originalCode);
-      await tracker.initializeBaseline();
-      setProgressTracker(tracker);
+      // Generate improved code
+      const userCode = await generateCode(userPrompt);
 
-      // Generate dynamic lessons based on user's code
-      const generatedLessons = await lessonGenerator.generateLessonSequence({
-        originalPrompt,
+      // Analyze both codes in parallel
+      const [originalMetrics, userCodeMetrics] = await Promise.all([
+        analyzeCode(originalCode),
+        analyzeCode(userCode),
+      ]);
+
+      // Calculate score and feedback
+      const score = calculateScore(originalMetrics, userCodeMetrics);
+      const feedback = generateFeedback(userPrompt, score);
+
+      setResult({
         originalCode,
+        improvedCode: userCode,
+        originalPrompt,
+        improvedPrompt: userPrompt,
+        score,
+        feedback,
+        before: originalMetrics,
+        after: userCodeMetrics,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const analyzeCode = async (code: string): Promise<CodeMetrics> => {
+    try {
+      const response = await fetch("/api/chat-json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: `Count code metrics. Return ONLY JSON:
+${code}
+
+{
+  "lines": ${code.split("\n").filter((line) => line.trim()).length},
+  "functions": 2,
+  "errorHandling": 1,
+  "documentation": 0,
+  "validation": 0,
+  "security": 0
+}`,
+            },
+          ],
+        }),
       });
 
-      setLessons(generatedLessons);
-
-      // Initialize lesson states
-      const initialStates: LessonState[] = generatedLessons.map(
-        (lesson, index) => ({
-          id: lesson.id,
-          status: index === 0 ? "current" : "locked",
-        })
-      );
-      setLessonStates(initialStates);
-    } catch (error) {
-      console.error("Error generating curriculum:", error);
+      const data = await response.json();
+      const content = data.content
+        .replace(/```json\n?|\n?```/g, "")
+        .replace(/^[^{]*/, "")
+        .replace(/[^}]*$/, "");
+      return JSON.parse(content);
+    } catch {
+      return {
+        lines: code.split("\n").filter((line) => line.trim()).length,
+        functions: (code.match(/def |class /g) || []).length,
+        errorHandling: (code.match(/try:|except|if.*error/gi) || []).length,
+        documentation: (code.match(/"""|'''|#/g) || []).length,
+        validation: (code.match(/validate|check|isinstance/gi) || []).length,
+        security: (code.match(/auth|hash|encrypt/gi) || []).length,
+      };
     }
-
-    setIsGeneratingLessons(false);
   };
 
-  const handleLessonCompletion = (
-    lessonId: number,
-    improvedPrompt: string,
-    newCode: string,
-    promptGrade: PromptGrade,
-    codeAssessment: CodeAssessment,
-    improvementNotes: string[]
-  ) => {
-    if (!progressTracker) return;
+  const generateCode = async (prompt: string): Promise<string> => {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content: `Generate ONLY Python code for: ${prompt}
 
-    // Record progress
-    progressTracker.recordLessonCompletion(
-      lessonId,
-      improvedPrompt,
-      newCode,
-      promptGrade,
-      codeAssessment,
-      improvementNotes
-    );
+RULES:
+- Return ONLY executable Python code
+- NO markdown, NO explanations, NO comments
+- Clean, functional code only
 
-    // Update lesson states
-    setLessonStates((prev) =>
-      prev.map((state) => {
-        if (state.id === lessonId) {
-          return {
-            ...state,
-            status: "completed" as const,
-            score: promptGrade.score,
-          };
+Example output:
+def calculate():
+    return 2 + 2
+print(calculate())`,
+          },
+        ],
+      }),
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let code = "";
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) code += parsed.content;
+            } catch {}
+          }
         }
-        if (state.id === lessonId + 1) {
-          return { ...state, status: "current" as const };
-        }
-        return state;
-      })
+      }
+    }
+
+    return code
+      .replace(/^```python\s*/i, "")
+      .replace(/^```\s*/gm, "")
+      .replace(/\s*```\s*$/g, "")
+      .replace(/^Here.*?code.*?:/gim, "")
+      .replace(/^Below.*?code.*?:/gim, "")
+      .trim();
+  };
+
+  const calculateScore = (before: CodeMetrics, after: CodeMetrics): number => {
+    const beforeScore =
+      before.functions +
+      before.errorHandling +
+      before.documentation +
+      before.validation +
+      before.security;
+    const afterScore =
+      after.functions +
+      after.errorHandling +
+      after.documentation +
+      after.validation +
+      after.security;
+    return Math.round(
+      ((afterScore - beforeScore) / Math.max(beforeScore, 1)) * 100
     );
-
-    // Save progress
-    progressTracker.saveProgress();
-
-    // Check if curriculum is complete
-    if (lessonId === lessons.length) {
-      // Show final comparison
-      const finalComparison = progressTracker.generateFinalComparison();
-      setComparisonData(finalComparison);
-      setFinalCode(newCode);
-      setShowComparison(true);
-    } else {
-      // Move to next lesson
-      setCurrentLessonId(lessonId + 1);
-    }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case "current":
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case "locked":
-        return <Lock className="w-4 h-4 text-gray-400" />;
-      default:
-        return <Lock className="w-4 h-4 text-gray-400" />;
-    }
+  const generateFeedback = (userPrompt: string, score: number): string => {
+    const hints = [];
+
+    if (!userPrompt.includes("error") && !userPrompt.includes("validation"))
+      hints.push("Add errors");
+    if (!userPrompt.includes("document") && !userPrompt.includes("comment"))
+      hints.push("Want docs");
+    if (!userPrompt.includes("security") && !userPrompt.includes("validate"))
+      hints.push("Add security");
+    if (!userPrompt.includes("specific") && !userPrompt.includes("detail"))
+      hints.push("Be specific");
+
+    if (score > 100) return "Perfect!";
+    if (score > 50) return `✨ Good! Try: ${hints.slice(0, 2).join(", ")}`;
+    if (score > 0) return `💪 Better! Add: ${hints.slice(0, 2).join(", ")}`;
+    return `🎯 Try: ${hints.slice(0, 2).join(", ")}`;
   };
 
-  const getStatusBadge = (state: LessonState) => {
-    switch (state.status) {
-      case "completed":
-        return (
-          <Badge className="bg-green-100 text-green-800 text-xs">
-            {state.score}/100
-          </Badge>
-        );
-      case "current":
-        return (
-          <Badge className="bg-blue-100 text-blue-800 text-xs">
-            In Progress
-          </Badge>
-        );
-      case "locked":
-        return (
-          <Badge variant="secondary" className="text-xs">
-            Locked
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const completedLessons = lessonStates.filter(
-    (state) => state.status === "completed"
-  ).length;
-  const progressPercentage = (completedLessons / lessons.length) * 100;
-
-  if (showComparison && comparisonData) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <ComparisonView
-          data={comparisonData}
-          originalCode={originalCode}
-          finalCode={finalCode}
-          onStartNew={() => {
-            setShowComparison(false);
-            setLessons([]);
-            setCurrentLessonId(1);
-            setLessonStates([]);
-            setProgressTracker(null);
-          }}
-        />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg">Analyzing...</p>
+        </div>
       </div>
     );
   }
 
+  if (!result) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg mb-4">No data</p>
+          <Button onClick={() => (window.location.href = "/")}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const beforeScore =
+    result.before.functions +
+    result.before.errorHandling +
+    result.before.security;
+  const afterScore =
+    result.after.functions + result.after.errorHandling + result.after.security;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="flex">
-        {/* Left Sidebar - Dynamic Course Navigation */}
-        <div className="w-80 border-r">
-          <div className="p-6 border-b">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">Your Custom Path</h2>
-                <p className="text-sm text-muted-foreground">
-                  Tailored to your code
-                </p>
-              </div>
-            </div>
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* Results */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">
+            {result.score > 100
+              ? "🏆"
+              : result.score > 50
+              ? "✨"
+              : result.score > 0
+              ? "💪"
+              : "🎯"}
+          </div>
+          <h1 className="text-2xl font-bold mb-2">{result.feedback}</h1>
+          <div className="flex items-center justify-center gap-4 text-lg">
+            <span className="text-red-600 font-mono">{beforeScore}</span>
+            <span>→</span>
+            <span className="text-green-600 font-mono">{afterScore}</span>
+            <span className="text-purple-600 font-mono">
+              ({result.score > 0 ? "+" : ""}
+              {result.score}%)
+            </span>
+          </div>
+        </div>
 
-            {/* Progress Overview */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>Progress</span>
-                <span className="font-medium">
-                  {completedLessons}/{lessons.length}
-                </span>
-              </div>
-              <Progress value={progressPercentage} className="h-2" />
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <TrendingUp className="w-3 h-3" />
-                {progressTracker && (
-                  <span>
-                    {progressTracker.getProgressSummary().improvementPercentage}
-                    % improvement so far
-                  </span>
-                )}
-              </div>
+        {/* Code Comparison */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm">"{result.originalPrompt}"</span>
+            </div>
+            <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
+              <pre className="text-red-400">{result.originalCode}</pre>
             </div>
           </div>
 
-          {/* Dynamic Lesson List */}
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-3">
-              {lessons.map((lesson) => {
-                const state = lessonStates.find((s) => s.id === lesson.id);
-                if (!state) return null;
-
-                return (
-                  <Card
-                    key={lesson.id}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      currentLessonId === lesson.id
-                        ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                        : state.status === "locked"
-                        ? "opacity-60"
-                        : "hover:shadow-md"
-                    }`}
-                    onClick={() => {
-                      if (state.status !== "locked") {
-                        setCurrentLessonId(lesson.id);
-                      }
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {getStatusIcon(state.status)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-sm truncate">
-                              {lesson.title}
-                            </h3>
-                            {getStatusBadge(state)}
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            {lesson.description}
-                          </p>
-                          {lesson.improvementFocus && (
-                            <div className="mt-2 flex items-center gap-1">
-                              <Zap className="w-3 h-3 text-yellow-500" />
-                              <span className="text-xs text-yellow-600 font-medium">
-                                {lesson.improvementFocus}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {/* Final Achievement */}
-              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
-                <CardContent className="p-4 text-center">
-                  <Trophy className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                  <h3 className="font-semibold text-sm text-purple-800 dark:text-purple-300">
-                    Final Comparison
-                  </h3>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                    See your amazing improvement!
-                  </p>
-                </CardContent>
-              </Card>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-sm">"{result.improvedPrompt}"</span>
             </div>
-          </ScrollArea>
+            <div className="bg-gray-900 rounded p-3 text-xs font-mono max-h-48 overflow-auto">
+              <pre className="text-green-400">{result.improvedCode}</pre>
+            </div>
+          </div>
         </div>
 
-        {/* Main Content - Dynamic Lesson */}
-        <div className="flex-1 overflow-auto">
-          {isGeneratingLessons ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <h2 className="text-xl font-semibold mb-2">
-                  🤖 AI is Analyzing Your Code
-                </h2>
-                <p className="text-muted-foreground max-w-md">
-                  Creating a personalized curriculum based on your specific
-                  prompt and code. Each lesson will target areas where your code
-                  can be improved through better prompting.
-                </p>
-              </div>
-            </div>
-          ) : lessons.length > 0 ? (
-            <LessonContent
-              lesson={
-                lessons.find((l) => l.id === currentLessonId) || lessons[0]
-              }
-              originalPrompt={originalPrompt}
-              onLessonComplete={handleLessonCompletion}
-              progressTracker={progressTracker}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No Code Provided</h2>
-                <p className="text-muted-foreground mb-4">
-                  Generate some code first to create your personalized
-                  curriculum
-                </p>
-                <Button onClick={() => (window.location.href = "/")}>
-                  Go Back to Generator
-                </Button>
-              </div>
-            </div>
-          )}
+        {/* Actions */}
+        <div className="flex gap-3 justify-center">
+          <Button variant="outline" onClick={() => window.history.back()}>
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Try Again
+          </Button>
+          <Button onClick={() => (window.location.href = "/")}>
+            <Home className="w-4 h-4 mr-1" />
+            Next Challenge
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-export default function CurriculumPage() {
+export default function PromptLabPage() {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Loading your personalized curriculum...
-              </p>
-            </div>
-          </div>
-        }
-      >
-        <CurriculumContent />
+      <Suspense fallback={<div>Loading...</div>}>
+        <PromptLab />
       </Suspense>
     </ThemeProvider>
   );
