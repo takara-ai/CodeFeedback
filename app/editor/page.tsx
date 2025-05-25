@@ -456,21 +456,20 @@ import traceback
 stdout = sys.stdout
 sys.stdout = StringIO()
 
-try:
-    exec("""${code.replace(/"/g, '\\"').replace(/\n/g, "\\n")}""")
-    result = sys.stdout.getvalue()
-except Exception as e:
-    # Get full traceback for better error reporting
-    import traceback
-    result = f"Error: {str(e)}\\n\\nTraceback:\\n{traceback.format_exc()}"
-finally:
-    sys.stdout = stdout
+${code}
+    
+sys.stdout.getvalue()
+`;
 
-result`;
+        let output = "";
+        try{
+          const result = await pyodide.runPythonAsync(wrappedCode);
+          output = String(result);
+        }
+        catch(err: any){
+          output = `❌ Python Execution Error: ${err.toString()}`;
 
-        const result = await pyodide.runPythonAsync(wrappedCode);
-        const output = String(result);
-
+        }
         if (output.trim()) {
           setOutput(output);
         } else {
