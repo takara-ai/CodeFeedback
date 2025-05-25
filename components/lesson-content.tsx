@@ -46,6 +46,53 @@ interface LessonContentProps {
   progressTracker?: ProgressTracker | null;
 }
 
+// Validate and normalize prompt grades to ensure consistency
+function validatePromptGrade(grade: any): PromptGrade {
+  const clamp = (value: number, min: number = 0, max: number = 100) =>
+    Math.max(min, Math.min(max, Math.round(value || 0)));
+
+  const validated: PromptGrade = {
+    score: clamp(grade.score),
+    clarity: clamp(grade.clarity || grade.score),
+    specificity: clamp(grade.specificity || grade.score),
+    context: clamp(grade.context || grade.score),
+    feedback: grade.feedback || "No feedback provided",
+    suggestions: Array.isArray(grade.suggestions) ? grade.suggestions : [],
+  };
+
+  // Consistency check: overall score should be reasonable average of components
+  const componentAvg =
+    (validated.clarity + validated.specificity + validated.context) / 3;
+  if (Math.abs(validated.score - componentAvg) > 25) {
+    validated.score = Math.round(componentAvg);
+  }
+
+  return validated;
+}
+
+// Validate and normalize code assessment scores to ensure consistency
+function validateCodeAssessment(assessment: any): CodeAssessment {
+  const clamp = (value: number, min: number = 0, max: number = 100) =>
+    Math.max(min, Math.min(max, Math.round(value || 0)));
+
+  const validated: CodeAssessment = {
+    score: clamp(assessment.score),
+    functionality: clamp(assessment.functionality || assessment.score),
+    quality: clamp(assessment.quality || assessment.score),
+    efficiency: clamp(assessment.efficiency || assessment.score),
+    feedback: assessment.feedback || "No feedback provided",
+  };
+
+  // Consistency check: overall score should be reasonable average of components
+  const componentAvg =
+    (validated.functionality + validated.quality + validated.efficiency) / 3;
+  if (Math.abs(validated.score - componentAvg) > 25) {
+    validated.score = Math.round(componentAvg);
+  }
+
+  return validated;
+}
+
 export function LessonContent({
   lesson,
   originalPrompt: originalPromptProp,
@@ -102,30 +149,48 @@ export function LessonContent({
             messages: [
               {
                 role: "user",
-                content: `Grade this improved prompt for lesson ${
-                  lesson.id
-                }: "${lesson.title}". Compare against the ${
-                  previousLesson ? "previous iteration" : "original"
-                }.
+                content: `You are a prompt engineering expert. Grade this prompt using the exact rubric below.
 
+SCORING RUBRIC (0-100 each):
+
+CLARITY (0-100):
+- 90-100: Crystal clear, no ambiguity, specific action words
+- 70-89: Mostly clear with minor ambiguity
+- 50-69: Somewhat unclear, missing key details
+- 0-49: Vague, confusing, or ambiguous
+
+SPECIFICITY (0-100):
+- 90-100: Extremely specific (technologies, formats, constraints, examples)
+- 70-89: Good specificity with most technical details
+- 50-69: Some specificity but missing important details
+- 0-49: Generic or vague requirements
+
+CONTEXT (0-100):
+- 90-100: Rich context (use case, environment, existing code references)
+- 70-89: Good context with clear purpose
+- 50-69: Basic context provided
+- 0-49: Little to no context
+
+EXAMPLES:
+❌ Poor (Score: ~25): "Create a user authentication system"
+✅ Better (Score: ~85): "Create a JWT-based authentication system for a Node.js Express API that integrates with our MongoDB user collection. Handle password hashing with bcrypt, issue tokens valid for 24 hours, implement refresh token rotation. Use async/await syntax matching our existing middleware pattern."
+
+COMPARISON CONTEXT:
 ${comparisonContext}
-Current: "${userPrompt}"
 
-Focus: ${(lesson as any).improvementFocus || lesson.description}
+CURRENT PROMPT TO GRADE:
+"${userPrompt}"
 
+LESSON FOCUS: ${(lesson as any).improvementFocus || lesson.description}
+
+Return ONLY valid JSON:
 {
   "score": 85,
   "clarity": 80,
   "specificity": 90,
   "context": 85,
-  "feedback": "Good improvement in ${
-    (lesson as any).targetMetric || "specificity"
-  }. ${
-                  lesson.id > 1
-                    ? "Building well on previous improvements."
-                    : "Solid foundation for future iterations."
-                }",
-  "suggestions": ["Specific suggestion 1", "Specific suggestion 2"]
+  "feedback": "Good improvement in specificity. Added technical details like JWT and bcrypt. Could benefit from more context about existing codebase integration.",
+  "suggestions": ["Add specific file references or existing code patterns", "Include error handling requirements"]
 }`,
               },
             ],
@@ -155,7 +220,9 @@ Focus: ${(lesson as any).improvementFocus || lesson.description}
       const gradingData = await gradingResponse.json();
       if (gradingData.content) {
         const gradeData = cleanAndParseJSON(gradingData.content);
-        setPromptGrade(gradeData);
+        // Validate and normalize scores
+        const validatedGrade = validatePromptGrade(gradeData);
+        setPromptGrade(validatedGrade);
       }
 
       // Process code generation
@@ -213,15 +280,38 @@ Focus: ${(lesson as any).improvementFocus || lesson.description}
           messages: [
             {
               role: "user",
-              content: `Assess this code quality briefly (0-100). ${
-                previousLesson
-                  ? "Compare to the previous iteration and note improvements/regressions."
-                  : "This is the baseline assessment."
-              }
+              content: `You are a code quality expert. Assess this generated code using the exact rubric below.
 
-Prompt: "${userPrompt}"${comparisonText}
+CODE QUALITY RUBRIC (0-100 each):
+
+FUNCTIONALITY (0-100):
+- 90-100: Complete, correct implementation with edge cases
+- 70-89: Mostly functional with minor issues
+- 50-69: Basic functionality, some gaps
+- 0-49: Incomplete or incorrect
+
+QUALITY (0-100):
+- 90-100: Clean, readable, follows best practices
+- 70-89: Good structure with minor issues
+- 50-69: Acceptable but could be cleaner
+- 0-49: Poor structure or hard to read
+
+EFFICIENCY (0-100):
+- 90-100: Optimal algorithms, proper error handling, security
+- 70-89: Good approach with room for improvement
+- 50-69: Basic implementation
+- 0-49: Inefficient or problematic
+
+PROMPT USED: "${userPrompt}"${comparisonText}
 ${code}
 
+${
+  previousLesson
+    ? "Compare to previous iteration and note improvements/regressions."
+    : "This is the baseline assessment."
+}
+
+Return ONLY valid JSON:
 {
   "score": 82,
   "functionality": 85,
@@ -241,7 +331,9 @@ ${code}
       const data = await response.json();
       if (data.content) {
         const assessmentData = cleanAndParseJSON(data.content);
-        setCodeAssessment(assessmentData);
+        // Validate and normalize scores
+        const validatedAssessment = validateCodeAssessment(assessmentData);
+        setCodeAssessment(validatedAssessment);
       }
     } catch (error) {
       console.error("Error assessing code:", error);
