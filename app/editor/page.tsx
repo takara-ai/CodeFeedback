@@ -3,22 +3,55 @@
 import { CodeEditor } from "@/components/code-editor";
 import { AIAssistant } from "@/components/ai-assistant";
 import { Toolbar } from "@/components/toolbar";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import type { PyodideInterface } from "@/types/pyodide";
 
 const DEFAULT_P5JS_CODE = `
-// Welcome to Visual Coding! 🎨
+// Welcome to Visual Coding with p5.js! 🎨
+// This example shows how to create animations
 
-background(50, 50, 50);
+let x = 100;
+let y = 200;
+let speedX = 3;
+let speedY = 2;
+let ballSize = 50;
 
-for (let i = 0; i < 20; i++) {
-  fill(random(100, 255), random(100, 255), random(100, 255));
-  circle(random(0, width), random(0, height), random(20, 80));
+function setup() {
+  createCanvas(800, 600);
 }
 
-fill(255, 255, 255);
-text("Visual output works! 🎉", 50, 50);
+function draw() {
+  // Create trail effect by drawing a semi-transparent background
+  background(50, 50, 50, 25);
+  
+  // Update position
+  x += speedX;
+  y += speedY;
+  
+  // Bounce off edges
+  if (x > width - ballSize/2 || x < ballSize/2) {
+    speedX *= -1;
+  }
+  if (y > height - ballSize/2 || y < ballSize/2) {
+    speedY *= -1;
+  }
+  
+  // Draw bouncing ball
+  fill(random(100, 255), random(100, 255), random(100, 255));
+  circle(x, y, ballSize);
+  
+  // Add some sparkles
+  for (let i = 0; i < 3; i++) {
+    fill(255, 255, 255, 150);
+    circle(x + random(-30, 30), y + random(-30, 30), random(3, 8));
+  }
+  
+  // Show frame rate
+  fill(255);
+  text('FPS: ' + int(frameRate()), 10, 20);
+  text('Animated p5.js! 🎉', 10, 40);
+}
 `;
 
 const DEFAULT_PYTHON_CODE = `# Welcome to Natural Language Programming! 🚀
@@ -51,50 +84,9 @@ function EditorContent() {
   const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
   const [pyodideLoading, setPyodideLoading] = useState(false);
   const [pyodideError, setPyodideError] = useState<string | null>(null);
-  const [p5Instance, setP5Instance] = useState<any>(null);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
+  const [p5Code, setP5Code] = useState<string>("");
 
   const searchParams = useSearchParams();
-
-  // Simple p5.js loading
-  useEffect(() => {
-    if (language === "javascript" && !p5Instance) {
-      // Try to load p5.js with a simple approach
-      const loadP5 = () => {
-        const script = document.createElement("script");
-        script.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js";
-        script.onload = () => {
-          setTimeout(() => {
-            if ((window as any).p5) {
-              setP5Instance((window as any).p5);
-              setCanvasReady(true);
-              setOutput(
-                "✅ p5.js ready! Click 'Run' to see your visual output."
-              );
-            } else {
-              // Fallback: create a basic canvas system
-              setCanvasReady(true);
-              setOutput(
-                "⚠️ Using fallback canvas. Click 'Run' to see basic graphics."
-              );
-            }
-          }, 500);
-        };
-        script.onerror = () => {
-          // Use fallback canvas system
-          setCanvasReady(true);
-          setOutput(
-            "⚠️ Using fallback canvas. Click 'Run' to see basic graphics."
-          );
-        };
-        document.head.appendChild(script);
-      };
-
-      loadP5();
-    }
-  }, [language]);
 
   // Initialize code from URL params or default
   useEffect(() => {
@@ -139,13 +131,9 @@ function EditorContent() {
           : "Loading Python environment..."
       );
     } else {
-      setOutput(
-        canvasReady
-          ? "Canvas ready! Click 'Run' to see your visual output."
-          : "Loading canvas..."
-      );
+      setOutput("✅ p5.js ready! Click 'Run' to see your visual output.");
     }
-  }, [language, pyodide, canvasReady, searchParams]);
+  }, [language, pyodide, searchParams]);
 
   // Load Pyodide only when Python is selected
   useEffect(() => {
@@ -172,7 +160,6 @@ function EditorContent() {
           script.src =
             "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
           script.async = true;
-          scriptRef.current = script;
 
           script.onload = async () => {
             try {
@@ -226,191 +213,17 @@ function EditorContent() {
 
       loadPyodideFromCDN();
     }
-
-    // Cleanup function
-    return () => {
-      if (scriptRef.current && scriptRef.current.parentNode) {
-        scriptRef.current.parentNode.removeChild(scriptRef.current);
-      }
-    };
   }, [language, pyodide, pyodideLoading, pyodideError]);
 
   const runCode = async () => {
     if (language === "javascript") {
       setIsRunning(true);
-
       try {
-        // Get the canvas container
-        const container = document.querySelector(
-          "[data-p5-canvas-container]"
-        ) as HTMLElement;
-        if (!container) {
-          setOutput("❌ Canvas container not found.");
-          setIsRunning(false);
-          return;
-        }
-
-        // Clear container
-        container.innerHTML = "";
-
-        if (p5Instance) {
-          // Use p5.js if available
-          try {
-            new p5Instance((p: any) => {
-              // Create a sandbox for user code
-              const userCode = `
-                ${code}
-              `;
-
-              // Execute the user code
-              const func = new Function("p", "with(p) { " + userCode + " }");
-              func.call(p, p);
-
-              // Ensure we have a canvas
-              if (!p.canvas) {
-                p.setup =
-                  p.setup ||
-                  (() => {
-                    p.createCanvas(800, 600);
-                    p.background(240);
-                  });
-                p.setup();
-              }
-
-              // Parent the canvas to our container
-              if (p.canvas) {
-                container.appendChild(p.canvas);
-              }
-            });
-
-            setOutput(
-              "✅ p5.js code executed! Visual output should appear on the right."
-            );
-          } catch (error) {
-            console.error("p5.js error:", error);
-            setOutput(
-              `❌ p5.js Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`
-            );
-          }
-        } else {
-          // Fallback: Use native canvas
-          const canvas = document.createElement("canvas");
-          canvas.width = 800;
-          canvas.height = 600;
-          canvas.style.width = "100%";
-          canvas.style.height = "auto";
-          canvas.style.border = "1px solid #ccc";
-          container.appendChild(canvas);
-
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            // Clear canvas
-            ctx.fillStyle = "#f0f0f0";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Create basic drawing functions
-            const drawingAPI = {
-              canvas,
-              ctx,
-              width: canvas.width,
-              height: canvas.height,
-
-              background(r: number, g?: number, b?: number) {
-                if (g === undefined) {
-                  ctx.fillStyle = `rgb(${r}, ${r}, ${r})`;
-                } else {
-                  ctx.fillStyle = `rgb(${r}, ${g || 0}, ${b || 0})`;
-                }
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-              },
-
-              fill(r: number, g?: number, b?: number) {
-                if (g === undefined) {
-                  ctx.fillStyle = `rgb(${r}, ${r}, ${r})`;
-                } else {
-                  ctx.fillStyle = `rgb(${r}, ${g || 0}, ${b || 0})`;
-                }
-              },
-
-              circle(x: number, y: number, diameter: number) {
-                ctx.beginPath();
-                ctx.arc(x, y, diameter / 2, 0, Math.PI * 2);
-                ctx.fill();
-              },
-
-              rect(x: number, y: number, width: number, height: number) {
-                ctx.fillRect(x, y, width, height);
-              },
-
-              text(str: string, x: number, y: number) {
-                ctx.fillText(str, x, y);
-              },
-
-              random(min?: number, max?: number) {
-                if (min === undefined) return Math.random();
-                if (max === undefined) return Math.random() * min;
-                return Math.random() * (max - min) + min;
-              },
-            };
-
-            try {
-              // Execute user code with drawing API
-              const func = new Function(
-                "canvas",
-                "ctx",
-                "width",
-                "height",
-                "background",
-                "fill",
-                "circle",
-                "rect",
-                "text",
-                "random",
-                code
-              );
-              func.call(
-                drawingAPI,
-                canvas,
-                ctx,
-                canvas.width,
-                canvas.height,
-                drawingAPI.background,
-                drawingAPI.fill,
-                drawingAPI.circle,
-                drawingAPI.rect,
-                drawingAPI.text,
-                drawingAPI.random
-              );
-
-              setOutput(
-                "✅ Canvas code executed! Visual output should appear on the right."
-              );
-            } catch (error) {
-              console.error("Canvas error:", error);
-              // Show error on canvas
-              ctx.fillStyle = "#ff0000";
-              ctx.font = "16px Arial";
-              ctx.fillText("Error in code:", 10, 30);
-              ctx.fillText(
-                error instanceof Error ? error.message : String(error),
-                10,
-                50
-              );
-              setOutput(
-                `❌ Canvas Error: ${
-                  error instanceof Error ? error.message : String(error)
-                }`
-              );
-            }
-          }
-        }
+        setP5Code(code);
+        setOutput("✅ p5.js animation running! Check the visual output on the right.");
       } catch (error) {
-        console.error("General error:", error);
-        setOutput(
-          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
-        );
+        console.error("Error running p5.js code:", error);
+        setOutput(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         setIsRunning(false);
       }
@@ -489,12 +302,13 @@ result`;
 
   const resetCode = () => {
     setCode(language === "python" ? DEFAULT_PYTHON_CODE : DEFAULT_P5JS_CODE);
+    setP5Code("");
     setOutput(
       language === "python"
         ? pyodide
           ? "Python environment ready! You can now run your code."
           : "Loading Python environment..."
-        : "Canvas ready! Click 'Run' to see your visual output."
+        : "p5.js ready! Click 'Run' to see your visual output."
     );
   };
 
@@ -516,13 +330,16 @@ result`;
     );
   };
 
-  const handleSketchReady = () => {
-    // This is called when the canvas container is ready
-    setOutput("Canvas ready! Click 'Run' to see your visual output.");
-  };
-
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+  };
+
+  const handleP5Error = (error: string) => {
+    setOutput(`❌ p5.js Error: ${error}`);
+  };
+
+  const handleP5Success = () => {
+    setOutput("✅ p5.js animation running! Check the visual output on the right.");
   };
 
   return (
@@ -558,7 +375,9 @@ result`;
               output={output}
               language={language}
               onLanguageChange={handleLanguageChange}
-              onSketchReady={handleSketchReady}
+              p5Code={p5Code}
+              onP5Error={handleP5Error}
+              onP5Success={handleP5Success}
             />
           </div>
         </div>
