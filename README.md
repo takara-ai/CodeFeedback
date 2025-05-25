@@ -15,7 +15,7 @@ A Duolingo-style app for learning prompt engineering through hands-on practice.
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (recommended) or npm
+- pnpm (package manager)
 
 ### Installation
 
@@ -38,10 +38,10 @@ pnpm install
 cp .env.example .env.local
 ```
 
-4. Add your OpenAI API key to `.env.local`:
+4. Add your Mistral API key to `.env.local`:
 
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+MISTRAL_API_KEY=your_mistral_api_key_here
 ```
 
 ### Leaderboard Setup (Required)
@@ -77,12 +77,19 @@ Deploy to Vercel with one click:
 4. **Score**: Get points based on code quality improvements
 5. **Compete**: Add your name to the leaderboard!
 
+### Scoring System
+
+- **Cumulative Scoring**: Your scores accumulate each time you play! Submit multiple challenges to climb higher on the leaderboard.
+- **Code Quality Metrics**: Scores are based on improvements in functions, error handling, documentation, validation, and security.
+- **Percentage Improvement**: Scores represent the percentage improvement from the original code to your improved version.
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
+- **Package Manager**: pnpm
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Database**: Upstash Redis for leaderboards
-- **AI**: OpenAI GPT for code generation and analysis
+- **AI**: Mistral AI for code generation and analysis
 - **Deployment**: Vercel
 
 ## Contributing

@@ -62,17 +62,22 @@ export async function POST(request: NextRequest) {
 
     // Use Upstash Redis
     const currentScore = (await redis.zscore("leaderboard", cleanName)) || 0;
+    const newTotalScore = currentScore + score;
 
-    if (score > currentScore) {
-      await redis.zadd("leaderboard", { score, member: cleanName });
-      await redis.hset(`user:${cleanName}`, { timestamp });
-      await redis.expire(`user:${cleanName}`, 30 * 24 * 60 * 60);
-    }
+    // Always update with the summed score
+    await redis.zadd("leaderboard", {
+      score: newTotalScore,
+      member: cleanName,
+    });
+    await redis.hset(`user:${cleanName}`, { timestamp });
+    await redis.expire(`user:${cleanName}`, 30 * 24 * 60 * 60);
 
     return NextResponse.json({
       success: true,
-      updated: score > currentScore,
-      newScore: Math.max(score, currentScore),
+      updated: true,
+      newScore: newTotalScore,
+      addedScore: score,
+      previousScore: currentScore,
     });
   } catch (error) {
     console.error("Error updating leaderboard:", error);
