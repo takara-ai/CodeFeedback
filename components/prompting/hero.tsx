@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { RefreshCw, Zap } from "lucide-react";
+import { RefreshCw, Zap, Book } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -120,6 +120,20 @@ print(calculate())`,
           </p>
         </div>
 
+        {/* Challenge button above search */}
+        <div className="mt-16 mb-4 text-center">
+          <Link
+            href="/compare-game"
+          >
+            <Button 
+              variant="ghost"
+              className="text-gray-400 hover:text-gray-900 flex items-center gap-2 mx-auto"
+            >
+            <Book className="w-4 h-4" />
+            Challenges
+            </Button>
+          </Link>
+        </div>
         {/* Challenge */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border p-6 space-y-6">
           {/* Bad Code */}
