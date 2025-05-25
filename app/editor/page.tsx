@@ -13,12 +13,12 @@ const DEFAULT_P5JS_CODE = `
 
 let x = 100;
 let y = 200;
-let speedX = 3;
+let speedX = 7;
 let speedY = 2;
 let ballSize = 50;
 
 function setup() {
-  createCanvas(600, 500);
+  createCanvas(450, 500);
 }
 
 function draw() {
@@ -46,11 +46,6 @@ function draw() {
     fill(255, 255, 255, 150);
     circle(x + random(-30, 30), y + random(-30, 30), random(3, 8));
   }
-  
-  // Show frame rate
-  fill(255);
-  text('FPS: ' + int(frameRate()), 10, 20);
-  text('Animated p5.js! 🎉', 10, 40);
 }
 `;
 
