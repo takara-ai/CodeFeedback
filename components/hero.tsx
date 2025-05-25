@@ -5,6 +5,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { RefreshCw, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  API_ENDPOINTS,
+  BAD_PROMPTS,
+  GRADIENTS,
+  VARIANTS,
+  getRandomBadPrompt,
+} from "@/lib/constants";
+import {
+  getContainerClasses,
+  getTerminalClasses,
+  getTerminalTextClasses,
+  getChallengeCardClasses,
+  LAYOUT_PATTERNS,
+} from "@/lib/ui-utils";
+import { StatusIndicator } from "@/components/ui/status-indicator";
 
 export function Hero() {
   const [userPrompt, setUserPrompt] = useState("");
@@ -12,16 +27,7 @@ export function Hero() {
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const badPrompts = [
-    "make chat app",
-    "build calculator",
-    "create todo list",
-    "make password thing",
-    "build file manager",
-    "create expense tracker",
-    "make weather app",
-    "build quiz game",
-  ];
+  // Use constants instead of hardcoded array
 
   useEffect(() => {
     loadDailyChallenge();
@@ -30,12 +36,12 @@ export function Hero() {
   const loadDailyChallenge = async () => {
     setIsGenerating(true);
 
-    const badPrompt = badPrompts[Math.floor(Math.random() * badPrompts.length)];
+    const badPrompt = getRandomBadPrompt();
     setOriginalBadPrompt(badPrompt);
     setUserPrompt(badPrompt);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch(API_ENDPOINTS.chat, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,33 +109,30 @@ print(calculate())`,
   };
 
   return (
-    <section className="py-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 min-h-screen">
-      <div className="container mx-auto px-4 max-w-3xl">
+    <section className={`${LAYOUT_PATTERNS.heroSection} ${GRADIENTS.hero}`}>
+      <div className={LAYOUT_PATTERNS.heroContainer}>
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">
+        <div className={LAYOUT_PATTERNS.heroHeader}>
+          <h1 className={LAYOUT_PATTERNS.heroTitle}>
             Learn Your
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {" "}
-              Language{" "}
-            </span>
+            <span className={GRADIENTS.brand}> Language </span>
             Not Code
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className={LAYOUT_PATTERNS.heroSubtitle}>
             The Hottest New Programming Language is English
           </p>
         </div>
 
         {/* Challenge */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border p-6 space-y-6">
+        <div className={getChallengeCardClasses()}>
           {/* Bad Code */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <StatusIndicator status="error" />
               <span className="text-sm">"{originalBadPrompt}" generates:</span>
             </div>
-            <div className="bg-gray-900 rounded p-3 text-sm font-mono overflow-x-auto max-h-48">
-              <pre className="text-green-400 whitespace-pre-wrap break-words">
+            <div className={getTerminalClasses("max-h-48")}>
+              <pre className={getTerminalTextClasses()}>
                 {generatedCode || "Loading..."}
               </pre>
             </div>
@@ -138,7 +141,7 @@ print(calculate())`,
           {/* User Input */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <StatusIndicator status="success" />
               <span className="text-sm">Improve this prompt:</span>
             </div>
 

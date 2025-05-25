@@ -4,7 +4,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, RotateCcw, Trophy, Target, Zap, Loader2, Play } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  Trophy,
+  Target,
+  Zap,
+  Loader2,
+  Play,
+} from "lucide-react";
 import { Editor } from "@monaco-editor/react";
 import { P5Canvas } from "@/components/p5-canvas";
 import type { PyodideInterface } from "@/types/pyodide";
@@ -17,22 +26,27 @@ interface CodeComparison {
     good: string;
     bad: string;
   };
-  language: 'python' | 'javascript';
+  language: "python" | "javascript";
 }
 
 export default function CompareGamePage() {
   const [currentChallenge, setCurrentChallenge] = useState(0);
   const [score, setScore] = useState(0);
-  const [gameState, setGameState] = useState<'loading' | 'playing' | 'revealed' | 'finished'>('loading');
-  const [selectedCode, setSelectedCode] = useState<'left' | 'right' | null>(null);
+  const [gameState, setGameState] = useState<
+    "loading" | "playing" | "revealed" | "finished"
+  >("loading");
+  const [selectedCode, setSelectedCode] = useState<"left" | "right" | null>(
+    null
+  );
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [leftIsGood, setLeftIsGood] = useState(true);
-  const [currentChallengeData, setCurrentChallengeData] = useState<CodeComparison | null>(null);
-  const [totalChallenges] = useState(5);
+  const [currentChallengeData, setCurrentChallengeData] =
+    useState<CodeComparison | null>(null);
+  const [totalChallenges] = useState(1);
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [usedTopics, setUsedTopics] = useState<string[]>([]);
   const [isGeneratingNext, setIsGeneratingNext] = useState(false);
-  
+
   // Python execution state
   const [pyodide, setPyodide] = useState<PyodideInterface | null>(null);
   const [pyodideLoading, setPyodideLoading] = useState(false);
@@ -41,7 +55,7 @@ export default function CompareGamePage() {
   const [rightOutput, setRightOutput] = useState<string>("");
   const [isRunningLeft, setIsRunningLeft] = useState(false);
   const [isRunningRight, setIsRunningRight] = useState(false);
-  
+
   // p5.js canvas state
   const [leftP5Code, setLeftP5Code] = useState<string>("");
   const [rightP5Code, setRightP5Code] = useState<string>("");
@@ -86,7 +100,9 @@ export default function CompareGamePage() {
         } catch (error) {
           console.error("Error initializing Pyodide:", error);
           setPyodideError(
-            error instanceof Error ? error.message : "Failed to initialize Pyodide"
+            error instanceof Error
+              ? error.message
+              : "Failed to initialize Pyodide"
           );
         } finally {
           setPyodideLoading(false);
@@ -109,48 +125,52 @@ export default function CompareGamePage() {
     }
   };
 
-  const runCode = async (code: string, side: 'left' | 'right') => {
-    const isP5js = currentChallengeData?.language === 'javascript';
-    
+  const runCode = async (code: string, side: "left" | "right") => {
+    const isP5js = currentChallengeData?.language === "javascript";
+
     if (isP5js) {
       // Handle p5.js execution
-      if (side === 'left') {
+      if (side === "left") {
         setIsRunningLeft(true);
         setLeftP5Code(code);
-        setLeftOutput("✅ p5.js animation running! Check the visual output below.");
+        setLeftOutput(
+          "✅ p5.js animation running! Check the visual output below."
+        );
         setIsRunningLeft(false);
       } else {
         setIsRunningRight(true);
         setRightP5Code(code);
-        setRightOutput("✅ p5.js animation running! Check the visual output below.");
+        setRightOutput(
+          "✅ p5.js animation running! Check the visual output below."
+        );
         setIsRunningRight(false);
       }
       return;
     }
-    
+
     // Handle Python execution
     if (pyodideLoading) {
       const output = "⏳ Python environment is still loading... Please wait.";
-      if (side === 'left') setLeftOutput(output);
+      if (side === "left") setLeftOutput(output);
       else setRightOutput(output);
       return;
     }
 
     if (pyodideError) {
       const output = `❌ Python environment error: ${pyodideError}`;
-      if (side === 'left') setLeftOutput(output);
+      if (side === "left") setLeftOutput(output);
       else setRightOutput(output);
       return;
     }
 
     if (!pyodide) {
       const output = "❌ Python environment is not available.";
-      if (side === 'left') setLeftOutput(output);
+      if (side === "left") setLeftOutput(output);
       else setRightOutput(output);
       return;
     }
 
-    if (side === 'left') {
+    if (side === "left") {
       setIsRunningLeft(true);
       setLeftOutput("🚀 Running code...");
     } else {
@@ -182,20 +202,21 @@ sys.stdout.getvalue()
       }
 
       if (output.trim()) {
-        if (side === 'left') setLeftOutput(output);
+        if (side === "left") setLeftOutput(output);
         else setRightOutput(output);
       } else {
-        const successOutput = "✅ Code executed successfully! (No output produced)";
-        if (side === 'left') setLeftOutput(successOutput);
+        const successOutput =
+          "✅ Code executed successfully! (No output produced)";
+        if (side === "left") setLeftOutput(successOutput);
         else setRightOutput(successOutput);
       }
     } catch (err: any) {
       console.error("Code execution error:", err);
       const errorOutput = `❌ Execution Error: ${err.toString()}`;
-      if (side === 'left') setLeftOutput(errorOutput);
+      if (side === "left") setLeftOutput(errorOutput);
       else setRightOutput(errorOutput);
     } finally {
-      if (side === 'left') setIsRunningLeft(false);
+      if (side === "left") setIsRunningLeft(false);
       else setIsRunningRight(false);
     }
   };
@@ -247,7 +268,7 @@ Make each topic:
 - Suitable for teaching "code smell" detection
 - About real-world programming scenarios
 - Clear about what the function/animation should do in plain English
-- Prefixed with "Python:" or "p5.js:" to indicate the language`
+- Prefixed with "Python:" or "p5.js:" to indicate the language`,
             },
           ],
         }),
@@ -255,12 +276,12 @@ Make each topic:
 
       const data = await response.json();
       let content = data.content;
-      
+
       // Clean up the response to extract JSON
       content = content.replace(/```json\n?|\n?```/g, "");
       content = content.replace(/^[^[]*/, "");
       content = content.replace(/[^\]]*$/, "");
-      
+
       const topics = JSON.parse(content);
       return Array.isArray(topics) ? topics : [];
     } catch (error) {
@@ -278,40 +299,43 @@ Make each topic:
         "p5.js: Create a color-changing background animation",
         "p5.js: Create a simple click-to-spawn circles effect",
         "p5.js: Create a moving rainbow gradient",
-        "p5.js: Create a simple particle system"
+        "p5.js: Create a simple particle system",
       ];
     }
   };
 
   const initializeGame = async () => {
-    setGameState('loading');
-    
+    setGameState("loading");
+
     // Generate topics for this game session
     const topics = await generateTopics();
     setAvailableTopics(topics);
-    
+
     // Generate first challenge
     await generateNewChallenge(topics);
-    setGameState('playing');
+    setGameState("playing");
     setLeftIsGood(Math.random() > 0.5);
   };
 
   const generateNewChallenge = async (topics?: string[]) => {
     const topicsToUse = topics || availableTopics;
-    
+
     // Get available topics (not used yet)
-    const unusedTopics = topicsToUse.filter(topic => !usedTopics.includes(topic));
-    
+    const unusedTopics = topicsToUse.filter(
+      (topic) => !usedTopics.includes(topic)
+    );
+
     // If we've used all topics, reset the pool
     const finalTopics = unusedTopics.length > 0 ? unusedTopics : topicsToUse;
-    
+
     // Select random topic
-    const selectedTopic = finalTopics[Math.floor(Math.random() * finalTopics.length)];
-    
+    const selectedTopic =
+      finalTopics[Math.floor(Math.random() * finalTopics.length)];
+
     try {
       const challenge = await generateChallenge(selectedTopic);
       setCurrentChallengeData(challenge);
-      setUsedTopics(prev => [...prev, selectedTopic]);
+      setUsedTopics((prev) => [...prev, selectedTopic]);
     } catch (error) {
       console.error("Error generating challenge:", error);
       // Fallback challenge
@@ -327,20 +351,20 @@ def example():
     pass`,
         explanation: {
           good: "This would be an efficient implementation with best practices.",
-          bad: "This would be an inefficient implementation with poor practices."
+          bad: "This would be an inefficient implementation with poor practices.",
         },
-        language: 'python'
+        language: "python",
       });
-      setUsedTopics(prev => [...prev, selectedTopic]);
+      setUsedTopics((prev) => [...prev, selectedTopic]);
     }
   };
 
   const generateChallenge = async (prompt: string): Promise<CodeComparison> => {
     // Determine language from prompt prefix
-    const isP5js = prompt.startsWith('p5.js:');
-    const language = isP5js ? 'javascript' : 'python';
-    const cleanPrompt = prompt.replace(/^(Python:|p5\.js:)\s*/, '');
-    
+    const isP5js = prompt.startsWith("p5.js:");
+    const language = isP5js ? "javascript" : "python";
+    const cleanPrompt = prompt.replace(/^(Python:|p5\.js:)\s*/, "");
+
     const response = await fetch("/api/chat-json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -354,8 +378,16 @@ Create two ${language.toUpperCase()} implementations - one with good practices a
 
 {
   "prompt": "${cleanPrompt}",
-  "goodCode": "${isP5js ? 'function setup() {\n  // Clean, readable implementation\n}\n\nfunction draw() {\n  // Animation code\n}' : 'def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())'}",
-  "badCode": "${isP5js ? 'function setup() {\n  // Poor quality implementation\n}\n\nfunction draw() {\n  // Messy animation code\n}' : 'def example():\n    # Poor quality implementation\n    pass\n\n# Test the function\nprint(example())'}",
+  "goodCode": "${
+    isP5js
+      ? "function setup() {\n  // Clean, readable implementation\n}\n\nfunction draw() {\n  // Animation code\n}"
+      : "def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())"
+  }",
+  "badCode": "${
+    isP5js
+      ? "function setup() {\n  // Poor quality implementation\n}\n\nfunction draw() {\n  // Messy animation code\n}"
+      : "def example():\n    # Poor quality implementation\n    pass\n\n# Test the function\nprint(example())"
+  }",
   "explanation": {
     "good": "Why this code follows good practices (readability, maintainability, etc.)",
     "bad": "Why this code has quality issues (hard to read, maintain, or understand)"
@@ -365,8 +397,16 @@ Create two ${language.toUpperCase()} implementations - one with good practices a
 
 IMPORTANT: 
 - Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
-- Both implementations must be FUNCTIONAL and ${isP5js ? 'create visible animations/graphics' : 'produce VISIBLE OUTPUT when run'}
-${isP5js ? '- For p5.js: Include setup() and draw() functions, use createCanvas(), and create visible graphics' : '- Include test code that calls the function and prints results so users can see how it works'}
+- Both implementations must be FUNCTIONAL and ${
+              isP5js
+                ? "create visible animations/graphics"
+                : "produce VISIBLE OUTPUT when run"
+            }
+${
+  isP5js
+    ? "- For p5.js: Include setup() and draw() functions, use createCanvas(), and create visible graphics"
+    : "- Include test code that calls the function and prints results so users can see how it works"
+}
 - Make the output meaningful and comparable between versions
 
 Focus on PRACTICAL code quality issues that anyone can understand:
@@ -375,26 +415,42 @@ BAD CODE should demonstrate:
 - Poor variable names (x, data, stuff, temp, a, b, c)
 - Missing or unclear comments
 - Functions that do too much in one place
-- ${isP5js ? 'Inefficient drawing calls or poor animation structure' : 'No error handling for obvious failure cases'}
+- ${
+              isP5js
+                ? "Inefficient drawing calls or poor animation structure"
+                : "No error handling for obvious failure cases"
+            }
 - Hardcoded values that should be configurable
 - Inconsistent formatting or style
 - Code that's hard to read or understand
-- ${isP5js ? 'Poor organization of setup/draw logic' : 'Missing input validation'}
+- ${
+              isP5js
+                ? "Poor organization of setup/draw logic"
+                : "Missing input validation"
+            }
 - Repetitive code patterns
 - Confusing logic flow
 
 GOOD CODE should demonstrate:
 - Clear, descriptive variable and function names
-- ${isP5js ? 'Proper setup/draw organization and efficient graphics calls' : 'Proper error handling for common issues'}
+- ${
+              isP5js
+                ? "Proper setup/draw organization and efficient graphics calls"
+                : "Proper error handling for common issues"
+            }
 - Clean, readable structure
 - Appropriate comments explaining the "why"
-- ${isP5js ? 'Good animation practices and canvas management' : 'Input validation where needed'}
+- ${
+              isP5js
+                ? "Good animation practices and canvas management"
+                : "Input validation where needed"
+            }
 - Consistent formatting
 - Single responsibility (function does one thing well)
 - Easy to understand logic flow
 - Well-organized code structure
 
-Make both implementations FUNCTIONAL and correct, but focus on code QUALITY differences that affect readability, maintainability, and professionalism.`
+Make both implementations FUNCTIONAL and correct, but focus on code QUALITY differences that affect readability, maintainability, and professionalism.`,
           },
         ],
       }),
@@ -402,17 +458,17 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
 
     const data = await response.json();
     let content = data.content;
-    
+
     // Clean up the response to extract JSON
     content = content.replace(/```json\n?|\n?```/g, "");
     content = content.replace(/^[^{]*/, "");
     content = content.replace(/[^}]*$/, "");
-    
+
     try {
       const result = JSON.parse(content);
       return {
         ...result,
-        language: language as 'python' | 'javascript'
+        language: language as "python" | "javascript",
       };
     } catch (parseError) {
       console.error("Failed to parse JSON:", content);
@@ -420,16 +476,17 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
     }
   };
 
-  const handleChoice = (choice: 'left' | 'right') => {
+  const handleChoice = (choice: "left" | "right") => {
     setSelectedCode(choice);
-    const correct = (choice === 'left' && leftIsGood) || (choice === 'right' && !leftIsGood);
+    const correct =
+      (choice === "left" && leftIsGood) || (choice === "right" && !leftIsGood);
     setIsCorrect(correct);
-    
+
     if (correct) {
       setScore(score + 1);
     }
-    
-    setGameState('revealed');
+
+    setGameState("revealed");
   };
 
   const nextChallenge = async () => {
@@ -438,21 +495,21 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
       setCurrentChallenge(currentChallenge + 1);
       setSelectedCode(null);
       setIsCorrect(null);
-      
+
       // Clear outputs
       setLeftOutput("");
       setRightOutput("");
       setLeftP5Code("");
       setRightP5Code("");
-      
+
       // Generate next challenge
       await generateNewChallenge();
-      
-      setGameState('playing');
+
+      setGameState("playing");
       setLeftIsGood(Math.random() > 0.5);
       setIsGeneratingNext(false);
     } else {
-      setGameState('finished');
+      setGameState("finished");
     }
   };
 
@@ -462,13 +519,13 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
     setSelectedCode(null);
     setIsCorrect(null);
     setUsedTopics([]);
-    
+
     // Clear outputs
     setLeftOutput("");
     setRightOutput("");
     setLeftP5Code("");
     setRightP5Code("");
-    
+
     initializeGame();
   };
 
@@ -480,7 +537,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
   };
 
   // Loading state for first challenge
-  if (gameState === 'loading') {
+  if (gameState === "loading") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
@@ -493,7 +550,10 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
               AI is creating a code quality evaluation challenge for you...
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              <div
+                className="bg-blue-600 h-2 rounded-full animate-pulse"
+                style={{ width: "60%" }}
+              ></div>
             </div>
           </CardContent>
         </Card>
@@ -502,7 +562,7 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
   }
 
   // Finished state
-  if (gameState === 'finished') {
+  if (gameState === "finished") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="max-w-2xl mx-auto pt-20">
@@ -519,20 +579,27 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   {score}/{totalChallenges}
                 </div>
                 <p className="text-gray-600 mt-2">
-                  {score === totalChallenges ? "Perfect! You're a code quality expert!" :
-                   score >= totalChallenges * 0.8 ? "Excellent! You have a great eye for code quality." :
-                   score >= totalChallenges * 0.6 ? "Good job! You're learning to spot quality issues." :
-                   "Keep practicing! Code quality evaluation is a valuable skill."}
+                  {score === totalChallenges
+                    ? "Perfect! You're a code quality expert!"
+                    : score >= totalChallenges * 0.8
+                    ? "Excellent! You have a great eye for code quality."
+                    : score >= totalChallenges * 0.6
+                    ? "Good job! You're learning to spot quality issues."
+                    : "Keep practicing! Code quality evaluation is a valuable skill."}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-bold text-blue-600">{totalChallenges}</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {totalChallenges}
+                  </div>
                   <div className="text-sm text-gray-600">Challenges</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-600">{score}</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {score}
+                  </div>
                   <div className="text-sm text-gray-600">Correct</div>
                 </div>
                 <div>
@@ -566,8 +633,12 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
     );
   }
 
-  const leftCode = leftIsGood ? currentChallengeData.goodCode : currentChallengeData.badCode;
-  const rightCode = leftIsGood ? currentChallengeData.badCode : currentChallengeData.goodCode;
+  const leftCode = leftIsGood
+    ? currentChallengeData.goodCode
+    : currentChallengeData.badCode;
+  const rightCode = leftIsGood
+    ? currentChallengeData.badCode
+    : currentChallengeData.goodCode;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -578,9 +649,10 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
             Code Quality Detective
           </h1>
           <p className="text-gray-600 mb-4">
-            Learn to spot good vs poor code quality! Choose the better-written version first, then run both to see how they work.
+            Learn to spot good vs poor code quality! Choose the better-written
+            version first, then run both to see how they work.
           </p>
-          
+
           <div className="flex justify-center items-center gap-6">
             <Badge variant="outline" className="text-lg px-4 py-2">
               <Target className="mr-2 h-4 w-4" />
@@ -606,19 +678,21 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
         {/* Code Comparison */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Left Code */}
-          <Card className={`transition-all duration-300 ${
-            gameState === 'revealed' 
-              ? leftIsGood 
-                ? 'ring-2 ring-green-500 bg-green-50' 
-                : 'ring-2 ring-red-500 bg-red-50'
-              : selectedCode === 'left' 
-                ? 'ring-2 ring-blue-500' 
-                : 'hover:shadow-lg cursor-pointer'
-          }`}>
+          <Card
+            className={`transition-all duration-300 ${
+              gameState === "revealed"
+                ? leftIsGood
+                  ? "ring-2 ring-green-500 bg-green-50"
+                  : "ring-2 ring-red-500 bg-red-50"
+                : selectedCode === "left"
+                ? "ring-2 ring-blue-500"
+                : "hover:shadow-lg cursor-pointer"
+            }`}
+          >
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Version A</CardTitle>
-                {gameState === 'revealed' && (
+                {gameState === "revealed" && (
                   <Badge variant={leftIsGood ? "default" : "destructive"}>
                     {leftIsGood ? (
                       <>
@@ -654,20 +728,25 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   }}
                 />
               </div>
-              
+
               {/* Run Button */}
-              <Button 
-                onClick={() => runCode(leftCode, 'left')}
+              <Button
+                onClick={() => runCode(leftCode, "left")}
                 className="w-full mb-4"
                 variant="outline"
-                disabled={isRunningLeft || (currentChallengeData?.language === 'python' && pyodideLoading) || gameState === 'playing'}
+                disabled={
+                  isRunningLeft ||
+                  (currentChallengeData?.language === "python" &&
+                    pyodideLoading) ||
+                  gameState === "playing"
+                }
               >
                 {isRunningLeft ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Running...
                   </>
-                ) : gameState === 'playing' ? (
+                ) : gameState === "playing" ? (
                   <>
                     <Play className="mr-2 h-4 w-4" />
                     Make your choice first
@@ -683,7 +762,9 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
               {/* Output Display */}
               {leftOutput && (
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-sm">
-                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Output:</div>
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Output:
+                  </div>
                   <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
                     {leftOutput}
                   </pre>
@@ -691,29 +772,35 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
               )}
 
               {/* p5.js Canvas */}
-              {currentChallengeData?.language === 'javascript' && leftP5Code && (
-                <div className="mb-4">
-                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Visual Output:</div>
-                  <div className="w-full h-64 bg-white rounded overflow-hidden border">
-                    <P5Canvas code={leftP5Code} />
+              {currentChallengeData?.language === "javascript" &&
+                leftP5Code && (
+                  <div className="mb-4">
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Visual Output:
+                    </div>
+                    <div className="w-full h-64 bg-white rounded overflow-hidden border">
+                      <P5Canvas code={leftP5Code} />
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {gameState === 'playing' && (
-                <Button 
-                  onClick={() => handleChoice('left')}
+                )}
+
+              {gameState === "playing" && (
+                <Button
+                  onClick={() => handleChoice("left")}
                   className="w-full"
-                  variant={selectedCode === 'left' ? "default" : "outline"}
+                  variant={selectedCode === "left" ? "default" : "outline"}
                 >
                   Choose Version A
                 </Button>
               )}
-              
-              {gameState === 'revealed' && (
+
+              {gameState === "revealed" && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">
-                    <strong>Analysis:</strong> {leftIsGood ? currentChallengeData.explanation.good : currentChallengeData.explanation.bad}
+                    <strong>Analysis:</strong>{" "}
+                    {leftIsGood
+                      ? currentChallengeData.explanation.good
+                      : currentChallengeData.explanation.bad}
                   </p>
                 </div>
               )}
@@ -721,19 +808,21 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
           </Card>
 
           {/* Right Code */}
-          <Card className={`transition-all duration-300 ${
-            gameState === 'revealed' 
-              ? !leftIsGood 
-                ? 'ring-2 ring-green-500 bg-green-50' 
-                : 'ring-2 ring-red-500 bg-red-50'
-              : selectedCode === 'right' 
-                ? 'ring-2 ring-blue-500' 
-                : 'hover:shadow-lg cursor-pointer'
-          }`}>
+          <Card
+            className={`transition-all duration-300 ${
+              gameState === "revealed"
+                ? !leftIsGood
+                  ? "ring-2 ring-green-500 bg-green-50"
+                  : "ring-2 ring-red-500 bg-red-50"
+                : selectedCode === "right"
+                ? "ring-2 ring-blue-500"
+                : "hover:shadow-lg cursor-pointer"
+            }`}
+          >
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Version B</CardTitle>
-                {gameState === 'revealed' && (
+                {gameState === "revealed" && (
                   <Badge variant={!leftIsGood ? "default" : "destructive"}>
                     {!leftIsGood ? (
                       <>
@@ -769,20 +858,25 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
                   }}
                 />
               </div>
-              
+
               {/* Run Button */}
-              <Button 
-                onClick={() => runCode(rightCode, 'right')}
+              <Button
+                onClick={() => runCode(rightCode, "right")}
                 className="w-full mb-4"
                 variant="outline"
-                disabled={isRunningRight || (currentChallengeData?.language === 'python' && pyodideLoading) || gameState === 'playing'}
+                disabled={
+                  isRunningRight ||
+                  (currentChallengeData?.language === "python" &&
+                    pyodideLoading) ||
+                  gameState === "playing"
+                }
               >
                 {isRunningRight ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Running...
                   </>
-                ) : gameState === 'playing' ? (
+                ) : gameState === "playing" ? (
                   <>
                     <Play className="mr-2 h-4 w-4" />
                     Make your choice first
@@ -798,7 +892,9 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
               {/* Output Display */}
               {rightOutput && (
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 mb-4 text-sm">
-                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Output:</div>
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Output:
+                  </div>
                   <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
                     {rightOutput}
                   </pre>
@@ -806,29 +902,35 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
               )}
 
               {/* p5.js Canvas */}
-              {currentChallengeData?.language === 'javascript' && rightP5Code && (
-                <div className="mb-4">
-                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Visual Output:</div>
-                  <div className="w-full h-64 bg-white rounded overflow-hidden border">
-                    <P5Canvas code={rightP5Code} />
+              {currentChallengeData?.language === "javascript" &&
+                rightP5Code && (
+                  <div className="mb-4">
+                    <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Visual Output:
+                    </div>
+                    <div className="w-full h-64 bg-white rounded overflow-hidden border">
+                      <P5Canvas code={rightP5Code} />
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {gameState === 'playing' && (
-                <Button 
-                  onClick={() => handleChoice('right')}
+                )}
+
+              {gameState === "playing" && (
+                <Button
+                  onClick={() => handleChoice("right")}
                   className="w-full"
-                  variant={selectedCode === 'right' ? "default" : "outline"}
+                  variant={selectedCode === "right" ? "default" : "outline"}
                 >
                   Choose Version B
                 </Button>
               )}
-              
-              {gameState === 'revealed' && (
+
+              {gameState === "revealed" && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">
-                    <strong>Analysis:</strong> {!leftIsGood ? currentChallengeData.explanation.good : currentChallengeData.explanation.bad}
+                    <strong>Analysis:</strong>{" "}
+                    {!leftIsGood
+                      ? currentChallengeData.explanation.good
+                      : currentChallengeData.explanation.bad}
                   </p>
                 </div>
               )}
@@ -837,28 +939,38 @@ Make both implementations FUNCTIONAL and correct, but focus on code QUALITY diff
         </div>
 
         {/* Result and Next Button */}
-        {gameState === 'revealed' && (
+        {gameState === "revealed" && (
           <div className="text-center">
             {!isGeneratingNext && (
-              <div className={`text-2xl font-bold mb-4 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
-                {isCorrect ? '🎉 Correct!' : '❌ Incorrect!'}
+              <div
+                className={`text-2xl font-bold mb-4 ${
+                  isCorrect ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {isCorrect ? "🎉 Correct!" : "❌ Incorrect!"}
               </div>
             )}
-            
+
             {isGeneratingNext && (
               <div className="text-2xl font-bold mb-4 text-blue-600">
                 🤖 AI is creating your next challenge...
               </div>
             )}
-            
-            <Button onClick={nextChallenge} size="lg" disabled={isGeneratingNext}>
+
+            <Button
+              onClick={nextChallenge}
+              size="lg"
+              disabled={isGeneratingNext}
+            >
               {isGeneratingNext ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Generating Next Challenge...
                 </>
+              ) : currentChallenge < totalChallenges - 1 ? (
+                "Next Challenge"
               ) : (
-                currentChallenge < totalChallenges - 1 ? 'Next Challenge' : 'View Results'
+                "View Results"
               )}
             </Button>
           </div>
