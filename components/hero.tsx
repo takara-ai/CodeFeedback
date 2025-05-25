@@ -1,6 +1,5 @@
 "use client";
 
-import { transcribeWithDeepgram } from "@/lib/transcribe";
 import { AudioRecorderButton } from "./audio-recorder-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +20,6 @@ export function Hero() {
   const [generatedCurriculum, setGeneratedCurriculum] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<"code" | "curriculum">("curriculum");
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
 
   const supriseBuilds: string[] = [
     "Build a pomodoro timer in the terminal using Python",
@@ -53,28 +51,6 @@ export function Hero() {
   useEffect(() => {
     setIsVisible(true);
   }, [])
-
-  useEffect(() => {
-    if (!audioStream) return;
-
-    let cleanup: (() => void) | null = null;
-
-    transcribeWithDeepgram({
-      stream: audioStream,
-      onTranscript: (text) => {
-        setPrompt((prev) => `${prev} ${text}`.trim());
-      },
-      onError: (err) => console.error("Deepgram transcription error:", err),
-      onClose: () => console.log("Deepgram transcription ended"),
-      timeoutMs: 30000,
-    }).then((cleanupFn) => {
-      cleanup = cleanupFn
-    });
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [audioStream]);
 
   const generateContent = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -288,7 +264,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
               
               <div className="flex items-center gap-3">
                 {/* Audio button */}
-                <AudioRecorderButton onRecording={(stream) => setAudioStream(stream)} />
+                <AudioRecorderButton onTranscription={(text) => setPrompt(text)} />
                 {/* Submission Button */}
                 <Button
                   variant="ghost"
