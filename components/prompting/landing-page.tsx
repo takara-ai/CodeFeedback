@@ -1,7 +1,7 @@
 "use client";
 
 import { Header } from "@/components/header";
-import { Hero } from "@/components/hero";
+import { Hero } from "@/components/prompting/hero";
 import { ThemeProvider } from "@/components/theme-provider";
 
 export function LandingPage() {

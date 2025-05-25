@@ -20,7 +20,7 @@ export function Header() {
         >
           <MessageSquare className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
           <span className="group-hover:text-blue-600 transition-colors duration-300">
-            LangCode
+            The Ultimate Viber
           </span>
         </Link>
 
@@ -47,28 +47,6 @@ export function Header() {
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
-
-          {/* CTA Buttons */}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="hover:scale-105 transition-transform duration-300"
-          >
-            <Link href="/login">Sign In</Link>
-          </Button>
-          <Button
-            size="sm"
-            asChild
-            className="hover:scale-105 transition-all duration-300 hover:shadow-lg group"
-          >
-            <Link href="/editor">
-              Start Learning
-              <span className="ml-1 group-hover:translate-x-1 transition-transform duration-300">
-                →
-              </span>
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -79,34 +57,7 @@ export function Header() {
         } overflow-hidden`}
       >
         <nav className="container mx-auto px-4 py-4 space-y-4">
-          <Link
-            href="#features"
-            className="block text-sm font-medium hover:text-blue-600 transition-colors"
-          >
-            Learning Path
-          </Link>
-          <Link
-            href="#pricing"
-            className="block text-sm font-medium hover:text-blue-600 transition-colors"
-          >
-            Pricing
-          </Link>
-          <Link
-            href="#docs"
-            className="block text-sm font-medium hover:text-blue-600 transition-colors"
-          >
-            Guides
-          </Link>
-          <Link
-            href="#about"
-            className="block text-sm font-medium hover:text-blue-600 transition-colors"
-          >
-            About
-          </Link>
           <div className="flex gap-2 pt-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
             <Button size="sm" asChild>
               <Link href="/editor">Start Learning</Link>
             </Button>

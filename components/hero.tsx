@@ -176,7 +176,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
   };
 
   return (
-    <section className="py-20 md:py-32 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 overflow-hidden">
+    <section className="py-12 md:py-20 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 overflow-hidden">
       <div className="container mx-auto px-4 text-center relative">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -191,10 +191,10 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
           }`}
         >
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            Build with
+            Learn Your
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-gradient-x">
               {" "}
-              Language{" "}
+              Language,{" "}
             </span>
             Not Code
           </h1>

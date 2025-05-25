@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Editor } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
+import { P5Canvas } from "@/components/p5-canvas";
 import {
   Select,
   SelectContent,
@@ -17,7 +18,9 @@ interface CodeEditorProps {
   output: string;
   language: string;
   onLanguageChange: (language: string) => void;
-  onSketchReady?: (sketch: unknown) => void;
+  p5Code?: string;
+  onP5Error?: (error: string) => void;
+  onP5Success?: () => void;
 }
 
 export function CodeEditor({
@@ -26,33 +29,10 @@ export function CodeEditor({
   output,
   language,
   onLanguageChange,
-  onSketchReady,
+  p5Code = "",
+  onP5Error,
+  onP5Success,
 }: CodeEditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sketchRef = useRef<unknown>(null);
-
-  useEffect(() => {
-    // Only clean up when switching away from JavaScript
-    if (language === "python" && sketchRef.current) {
-      (sketchRef.current as { remove?: () => void }).remove?.();
-      sketchRef.current = null;
-    }
-
-    // Don't create a default sketch - let the run function handle it
-    if (language === "javascript") {
-      if (onSketchReady) {
-        // Signal that we're ready for sketch creation, but don't create one yet
-        onSketchReady(null);
-      }
-    }
-
-    return () => {
-      if (sketchRef.current) {
-        (sketchRef.current as { remove?: () => void }).remove?.();
-        sketchRef.current = null;
-      }
-    };
-  }, [language, onSketchReady]);
 
   return (
     <div className="flex h-full">
@@ -120,20 +100,24 @@ export function CodeEditor({
                 p5.js Visual Output
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-full">
-              <div
-                ref={containerRef}
-                className="w-full h-full bg-white rounded overflow-hidden flex items-center justify-center border"
-                style={{ minHeight: "500px" }}
-                data-p5-canvas-container
-              >
-                <div className="text-gray-500 text-center">
-                  <p className="text-lg font-semibold">p5.js Canvas</p>
-                  <p className="text-sm mt-2">
-                    Click "Run" to execute your code and see the visual output
-                    here
-                  </p>
-                </div>
+            <CardContent className="h-[93%]">
+              <div className="w-full h-full bg-white rounded overflow-hidden border" >
+                {p5Code ? (
+                  <P5Canvas
+                    code={p5Code}
+                    onError={onP5Error}
+                    onSuccess={onP5Success}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500 text-center">
+                    <div>
+                      <p className="text-lg font-semibold">p5.js Canvas</p>
+                      <p className="text-sm mt-2">
+                        Click "Run" to execute your code and see the visual output here
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
