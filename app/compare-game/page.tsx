@@ -42,30 +42,38 @@ export default function CompareGamePage() {
           messages: [
             {
               role: "user",
-              content: `Generate 12 diverse Python programming challenge topics for a code quality comparison game. Return ONLY valid JSON array:
+              content: `Generate 12 diverse Python programming challenge topics for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON array:
 
 [
-  "Create a function to check if a number is prime",
-  "Create a function to reverse a string",
+  "Create a function to check if a text contains bad words",
+  "Create a function to format a person's name properly",
   "..."
 ]
 
+Topics should focus on PRACTICAL, EVERYDAY programming tasks that help users learn to spot:
+- Code readability issues
+- Basic performance problems
+- Missing error handling
+- Poor variable naming
+- Code that's hard to understand or maintain
+- Security vulnerabilities in simple scenarios
+
 Topics should cover:
-- Data structures (lists, dictionaries, sets)
-- Algorithms (basic ones)
-- String manipulation
-- Mathematical computations
-- File operations
-- Data validation
-- Common programming patterns
-- Performance optimization scenarios
+- Text processing and validation
+- Basic data manipulation (lists, dictionaries)
+- Simple file operations
+- User input handling
+- Basic web/API interactions
+- Common utility functions
+- Data formatting and cleaning
 
 Make each topic:
-- Clear and specific
-- Suitable for comparing good vs bad implementations
-- Educational (showing common mistakes vs best practices), but not too complex (suited for kids)
-- Varied in difficulty and domain
-- Explain the problem in a way that is easy to understand (if it contains math, explain briefly the concept)`
+- Practical and relatable (things people actually code)
+- Easy to understand without math/algorithm knowledge
+- Focused on code quality rather than algorithmic complexity
+- Suitable for teaching "code smell" detection
+- About real-world programming scenarios
+- Clear about what the function should do in plain English`
             },
           ],
         }),
@@ -83,20 +91,20 @@ Make each topic:
       return Array.isArray(topics) ? topics : [];
     } catch (error) {
       console.error("Error generating topics:", error);
-      // Fallback topics if AI generation fails
+      // Fallback topics focused on practical code quality
       return [
-        "Create a function to check if a number is prime",
-        "Create a function to reverse a string",
-        "Create a function to find the maximum value in a list",
-        "Create a function to count word frequency in text",
-        "Create a function to calculate factorial",
-        "Create a function to sort a list of numbers",
-        "Create a function to find duplicate elements in a list",
         "Create a function to validate email addresses",
-        "Create a function to generate fibonacci sequence",
-        "Create a function to merge two sorted arrays",
-        "Create a function to check if a string is a palindrome",
-        "Create a function to calculate the sum of digits in a number"
+        "Create a function to format phone numbers",
+        "Create a function to clean up user input text",
+        "Create a function to check if a password is strong enough",
+        "Create a function to extract hashtags from social media posts",
+        "Create a function to convert text to title case",
+        "Create a function to remove duplicate items from a shopping list",
+        "Create a function to calculate the total price with tax",
+        "Create a function to check if a username is available",
+        "Create a function to format dates in a readable way",
+        "Create a function to count words in a text",
+        "Create a function to find the most common word in text"
       ];
     }
   };
@@ -160,34 +168,55 @@ def example():
         messages: [
           {
             role: "user",
-            content: `Generate a code comparison challenge for: "${prompt}"
+            content: `Generate a code quality evaluation challenge for: "${prompt}"
 
-Create two Python implementations - one good and one intentionally bad. Return ONLY valid JSON:
+Create two Python implementations - one with good practices and one with poor practices. This is for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON:
 
 {
   "prompt": "${prompt}",
-  "goodCode": "def example():\n    # Efficient, clean implementation\n    pass",
-  "badCode": "def example():\n    # Inefficient, problematic implementation\n    pass",
+  "goodCode": "def example():\n    # Clean, readable implementation\n    pass",
+  "badCode": "def example():\n    # Poor quality implementation\n    pass",
   "explanation": {
-    "good": "Brief explanation of why this is good (efficiency, readability, best practices)",
-    "bad": "Brief explanation of why this is bad (performance issues, poor practices, bugs)"
+    "good": "Why this code follows good practices (readability, maintainability, etc.)",
+    "bad": "Why this code has quality issues (hard to read, maintain, or understand)"
   }
 }
 
-Make the bad code have real issues like:
-- Poor time/space complexity
-- Missing error handling
-- Inefficient algorithms
-- Poor variable names
-- Code duplication
-- Security issues
+IMPORTANT: Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
 
-Make the good code demonstrate:
-- Optimal algorithms
-- Proper error handling
-- Clean, readable code
-- Best practices
-- Efficient data structures`
+Focus on PRACTICAL code quality issues that anyone can understand:
+
+BAD CODE should demonstrate:
+- Poor variable names (x, data, stuff, temp, a, b, c)
+- Missing or unclear comments
+- Functions that do too much in one place
+- No error handling for obvious failure cases
+- Hardcoded values that should be configurable
+- Inconsistent formatting or style
+- Code that's hard to read or understand
+- Missing input validation
+- Repetitive code patterns
+- Confusing logic flow
+
+GOOD CODE should demonstrate:
+- Clear, descriptive variable and function names
+- Proper error handling for common issues
+- Clean, readable structure
+- Appropriate comments explaining the "why"
+- Input validation where needed
+- Consistent formatting
+- Single responsibility (function does one thing well)
+- Easy to understand logic flow
+- Well-organized code structure
+
+Make both implementations:
+- FUNCTIONAL and correct (both should work)
+- SIMILAR LENGTH (same approximate number of lines)
+- SAME COMPLEXITY LEVEL (don't make one more sophisticated)
+- Focus on QUALITY differences that affect readability, maintainability, and professionalism
+- Avoid complex algorithms or math - focus on everyday programming practices
+
+The challenge is to spot quality differences, not length differences!`
           },
         ],
       }),
@@ -266,7 +295,7 @@ Make the good code demonstrate:
             </div>
             <h2 className="text-2xl font-bold mb-2">Generating Challenge</h2>
             <p className="text-gray-600 mb-4">
-              MISTRAL is creating your first code comparison challenge...
+              AI is creating a code quality evaluation challenge for you...
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
@@ -297,8 +326,8 @@ Make the good code demonstrate:
                 <p className="text-gray-600 mt-2">
                   {score === totalChallenges ? "Perfect! You're a code quality expert!" :
                    score >= totalChallenges * 0.8 ? "Excellent! You have a great eye for code quality." :
-                   score >= totalChallenges * 0.6 ? "Good job! Keep practicing to improve your code sense." :
-                   "Keep learning! Code quality comes with experience."}
+                   score >= totalChallenges * 0.6 ? "Good job! You're learning to spot quality issues." :
+                   "Keep practicing! Code quality evaluation is a valuable skill."}
                 </p>
               </div>
               
@@ -351,10 +380,10 @@ Make the good code demonstrate:
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            AI Code Quality Challenge
+            Code Quality Detective
           </h1>
           <p className="text-gray-600 mb-4">
-            MISTRAL generated two versions of the same code. Choose the better one!
+            Learn to spot good vs poor code quality! AI generated two versions - which one is better written?
           </p>
           
           <div className="flex justify-center items-center gap-6">
@@ -399,12 +428,12 @@ Make the good code demonstrate:
                     {leftIsGood ? (
                       <>
                         <CheckCircle className="mr-1 h-4 w-4" />
-                        Good Code
+                        Good Quality
                       </>
                     ) : (
                       <>
                         <XCircle className="mr-1 h-4 w-4" />
-                        Bad Code
+                        Poor Quality
                       </>
                     )}
                   </Badge>
@@ -456,12 +485,12 @@ Make the good code demonstrate:
                     {!leftIsGood ? (
                       <>
                         <CheckCircle className="mr-1 h-4 w-4" />
-                        Good Code
+                        Good Quality
                       </>
                     ) : (
                       <>
                         <XCircle className="mr-1 h-4 w-4" />
-                        Bad Code
+                        Poor Quality
                       </>
                     )}
                   </Badge>
