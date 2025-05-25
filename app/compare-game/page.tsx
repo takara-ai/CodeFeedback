@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, RotateCcw, Trophy, Target, Zap, Loader2, Play } from "lucide-react";
 import { Editor } from "@monaco-editor/react";
+import { P5Canvas } from "@/components/p5-canvas";
 import type { PyodideInterface } from "@/types/pyodide";
 
 interface CodeComparison {
@@ -16,6 +17,7 @@ interface CodeComparison {
     good: string;
     bad: string;
   };
+  language: 'python' | 'javascript';
 }
 
 export default function CompareGamePage() {
@@ -39,6 +41,10 @@ export default function CompareGamePage() {
   const [rightOutput, setRightOutput] = useState<string>("");
   const [isRunningLeft, setIsRunningLeft] = useState(false);
   const [isRunningRight, setIsRunningRight] = useState(false);
+  
+  // p5.js canvas state
+  const [leftP5Code, setLeftP5Code] = useState<string>("");
+  const [rightP5Code, setRightP5Code] = useState<string>("");
 
   useEffect(() => {
     initializeGame();
@@ -104,6 +110,25 @@ export default function CompareGamePage() {
   };
 
   const runCode = async (code: string, side: 'left' | 'right') => {
+    const isP5js = currentChallengeData?.language === 'javascript';
+    
+    if (isP5js) {
+      // Handle p5.js execution
+      if (side === 'left') {
+        setIsRunningLeft(true);
+        setLeftP5Code(code);
+        setLeftOutput("✅ p5.js animation running! Check the visual output below.");
+        setIsRunningLeft(false);
+      } else {
+        setIsRunningRight(true);
+        setRightP5Code(code);
+        setRightOutput("✅ p5.js animation running! Check the visual output below.");
+        setIsRunningRight(false);
+      }
+      return;
+    }
+    
+    // Handle Python execution
     if (pyodideLoading) {
       const output = "⏳ Python environment is still loading... Please wait.";
       if (side === 'left') setLeftOutput(output);
@@ -184,11 +209,11 @@ sys.stdout.getvalue()
           messages: [
             {
               role: "user",
-              content: `Generate 12 diverse Python programming challenge topics for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON array:
+              content: `Generate 12 diverse programming challenge topics for teaching users how to evaluate AI-generated code quality. Include both Python and p5.js challenges. Return ONLY valid JSON array:
 
 [
-  "Create a function to check if a text contains bad words",
-  "Create a function to format a person's name properly",
+  "Python: Create a function to check if a text contains bad words",
+  "p5.js: Create a bouncing ball animation",
   "..."
 ]
 
@@ -198,24 +223,31 @@ Topics should focus on PRACTICAL, EVERYDAY programming tasks that help users lea
 - Missing error handling
 - Poor variable naming
 - Code that's hard to understand or maintain
-- Security vulnerabilities in simple scenarios
 
-Topics should cover:
+PYTHON topics should cover:
 - Text processing and validation
 - Basic data manipulation (lists, dictionaries)
 - Simple file operations
 - User input handling
-- Basic web/API interactions
 - Common utility functions
 - Data formatting and cleaning
 
+P5.JS topics should cover:
+- Simple animations and movement
+- Basic drawing and shapes
+- Interactive elements (mouse, keyboard)
+- Color and visual effects
+- Simple games or simulations
+- Creative coding patterns
+
 Make each topic:
 - Practical and relatable (things people actually code)
-- Easy to understand without math/algorithm knowledge
+- Easy to understand without complex math/algorithm knowledge
 - Focused on code quality rather than algorithmic complexity
 - Suitable for teaching "code smell" detection
 - About real-world programming scenarios
-- Clear about what the function should do in plain English`
+- Clear about what the function/animation should do in plain English
+- Prefixed with "Python:" or "p5.js:" to indicate the language`
             },
           ],
         }),
@@ -235,18 +267,18 @@ Make each topic:
       console.error("Error generating topics:", error);
       // Fallback topics focused on practical code quality
       return [
-        "Create a function to validate email addresses",
-        "Create a function to format phone numbers",
-        "Create a function to clean up user input text",
-        "Create a function to check if a password is strong enough",
-        "Create a function to extract hashtags from social media posts",
-        "Create a function to convert text to title case",
-        "Create a function to remove duplicate items from a shopping list",
-        "Create a function to calculate the total price with tax",
-        "Create a function to check if a username is available",
-        "Create a function to format dates in a readable way",
-        "Create a function to count words in a text",
-        "Create a function to find the most common word in text"
+        "Python: Create a function to validate email addresses",
+        "Python: Create a function to format phone numbers",
+        "Python: Create a function to clean up user input text",
+        "Python: Create a function to check if a password is strong enough",
+        "Python: Create a function to extract hashtags from social media posts",
+        "Python: Create a function to convert text to title case",
+        "p5.js: Create a bouncing ball animation",
+        "p5.js: Create a simple drawing tool that follows the mouse",
+        "p5.js: Create a color-changing background animation",
+        "p5.js: Create a simple click-to-spawn circles effect",
+        "p5.js: Create a moving rainbow gradient",
+        "p5.js: Create a simple particle system"
       ];
     }
   };
@@ -296,13 +328,19 @@ def example():
         explanation: {
           good: "This would be an efficient implementation with best practices.",
           bad: "This would be an inefficient implementation with poor practices."
-        }
+        },
+        language: 'python'
       });
       setUsedTopics(prev => [...prev, selectedTopic]);
     }
   };
 
   const generateChallenge = async (prompt: string): Promise<CodeComparison> => {
+    // Determine language from prompt prefix
+    const isP5js = prompt.startsWith('p5.js:');
+    const language = isP5js ? 'javascript' : 'python';
+    const cleanPrompt = prompt.replace(/^(Python:|p5\.js:)\s*/, '');
+    
     const response = await fetch("/api/chat-json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -310,27 +348,53 @@ def example():
         messages: [
           {
             role: "user",
-            content: `Generate a code quality evaluation challenge for: "${prompt}"
+            content: `Generate a code quality evaluation challenge for: "${cleanPrompt}" in ${language.toUpperCase()}
 
-Create two Python implementations - one with good practices and one with poor practices. This is for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON:
+Create two ${language.toUpperCase()} implementations - one with good practices and one with poor practices. This is for teaching users how to evaluate AI-generated code quality. Return ONLY valid JSON:
 
 {
-  "prompt": "${prompt}",
-  "goodCode": "def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())",
-  "badCode": "def example():\n    # Poor quality implementation\n    pass\n\n# Test the function\nprint(example())",
+  "prompt": "${cleanPrompt}",
+  "goodCode": "${isP5js ? 'function setup() {\n  // Clean, readable implementation\n}\n\nfunction draw() {\n  // Animation code\n}' : 'def example():\n    # Clean, readable implementation\n    pass\n\n# Test the function\nprint(example())'}",
+  "badCode": "${isP5js ? 'function setup() {\n  // Poor quality implementation\n}\n\nfunction draw() {\n  // Messy animation code\n}' : 'def example():\n    # Poor quality implementation\n    pass\n\n# Test the function\nprint(example())'}",
   "explanation": {
     "good": "Why this code follows good practices (readability, maintainability, etc.)",
     "bad": "Why this code has quality issues (hard to read, maintain, or understand)"
-  }
+  },
+  "language": "${language}"
 }
 
 IMPORTANT: 
 - Both code versions must be SIMILAR IN LENGTH (same number of lines, similar complexity) so users can't cheat by picking the longer one. The difference should be in QUALITY, not quantity.
-- Both implementations must be FUNCTIONAL and produce VISIBLE OUTPUT when run
-- Include test code that calls the function and prints results so users can see how it works
+- Both implementations must be FUNCTIONAL and ${isP5js ? 'create visible animations/graphics' : 'produce VISIBLE OUTPUT when run'}
+${isP5js ? '- For p5.js: Include setup() and draw() functions, use createCanvas(), and create visible graphics' : '- Include test code that calls the function and prints results so users can see how it works'}
 - Make the output meaningful and comparable between versions
 
-Focus on PRACTICAL code quality issues that anyone can understand:`
+Focus on PRACTICAL code quality issues that anyone can understand:
+
+BAD CODE should demonstrate:
+- Poor variable names (x, data, stuff, temp, a, b, c)
+- Missing or unclear comments
+- Functions that do too much in one place
+- ${isP5js ? 'Inefficient drawing calls or poor animation structure' : 'No error handling for obvious failure cases'}
+- Hardcoded values that should be configurable
+- Inconsistent formatting or style
+- Code that's hard to read or understand
+- ${isP5js ? 'Poor organization of setup/draw logic' : 'Missing input validation'}
+- Repetitive code patterns
+- Confusing logic flow
+
+GOOD CODE should demonstrate:
+- Clear, descriptive variable and function names
+- ${isP5js ? 'Proper setup/draw organization and efficient graphics calls' : 'Proper error handling for common issues'}
+- Clean, readable structure
+- Appropriate comments explaining the "why"
+- ${isP5js ? 'Good animation practices and canvas management' : 'Input validation where needed'}
+- Consistent formatting
+- Single responsibility (function does one thing well)
+- Easy to understand logic flow
+- Well-organized code structure
+
+Make both implementations FUNCTIONAL and correct, but focus on code QUALITY differences that affect readability, maintainability, and professionalism.`
           },
         ],
       }),
@@ -345,7 +409,11 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
     content = content.replace(/[^}]*$/, "");
     
     try {
-      return JSON.parse(content);
+      const result = JSON.parse(content);
+      return {
+        ...result,
+        language: language as 'python' | 'javascript'
+      };
     } catch (parseError) {
       console.error("Failed to parse JSON:", content);
       throw parseError;
@@ -374,6 +442,8 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
       // Clear outputs
       setLeftOutput("");
       setRightOutput("");
+      setLeftP5Code("");
+      setRightP5Code("");
       
       // Generate next challenge
       await generateNewChallenge();
@@ -396,6 +466,8 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
     // Clear outputs
     setLeftOutput("");
     setRightOutput("");
+    setLeftP5Code("");
+    setRightP5Code("");
     
     initializeGame();
   };
@@ -567,8 +639,8 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
               <div className="bg-gray-900 rounded-lg overflow-hidden mb-4">
                 <Editor
                   height="200px"
-                  defaultLanguage="python"
-                  language="python"
+                  defaultLanguage={currentChallengeData?.language || "python"}
+                  language={currentChallengeData?.language || "python"}
                   value={leftCode}
                   theme="vs-dark"
                   options={{
@@ -588,7 +660,7 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
                 onClick={() => runCode(leftCode, 'left')}
                 className="w-full mb-4"
                 variant="outline"
-                disabled={isRunningLeft || pyodideLoading || gameState === 'playing'}
+                disabled={isRunningLeft || (currentChallengeData?.language === 'python' && pyodideLoading) || gameState === 'playing'}
               >
                 {isRunningLeft ? (
                   <>
@@ -615,6 +687,16 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
                   <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
                     {leftOutput}
                   </pre>
+                </div>
+              )}
+
+              {/* p5.js Canvas */}
+              {currentChallengeData?.language === 'javascript' && leftP5Code && (
+                <div className="mb-4">
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Visual Output:</div>
+                  <div className="w-full h-64 bg-white rounded overflow-hidden border">
+                    <P5Canvas code={leftP5Code} />
+                  </div>
                 </div>
               )}
               
@@ -672,8 +754,8 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
               <div className="bg-gray-900 rounded-lg overflow-hidden mb-4">
                 <Editor
                   height="200px"
-                  defaultLanguage="python"
-                  language="python"
+                  defaultLanguage={currentChallengeData?.language || "python"}
+                  language={currentChallengeData?.language || "python"}
                   value={rightCode}
                   theme="vs-dark"
                   options={{
@@ -693,7 +775,7 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
                 onClick={() => runCode(rightCode, 'right')}
                 className="w-full mb-4"
                 variant="outline"
-                disabled={isRunningRight || pyodideLoading || gameState === 'playing'}
+                disabled={isRunningRight || (currentChallengeData?.language === 'python' && pyodideLoading) || gameState === 'playing'}
               >
                 {isRunningRight ? (
                   <>
@@ -720,6 +802,16 @@ Focus on PRACTICAL code quality issues that anyone can understand:`
                   <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 overflow-x-auto">
                     {rightOutput}
                   </pre>
+                </div>
+              )}
+
+              {/* p5.js Canvas */}
+              {currentChallengeData?.language === 'javascript' && rightP5Code && (
+                <div className="mb-4">
+                  <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Visual Output:</div>
+                  <div className="w-full h-64 bg-white rounded overflow-hidden border">
+                    <P5Canvas code={rightP5Code} />
+                  </div>
                 </div>
               )}
               
