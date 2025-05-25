@@ -218,7 +218,7 @@ function CurriculumContent() {
                       <Link
                         href={`/editor?prompt=${encodeURIComponent(
                           steps[currentStep].prompt
-                        )}`}
+                        )}&code=${encodeURIComponent(steps[currentStep].code)}`}
                       >
                         Start Coding in Editor
                       </Link>
