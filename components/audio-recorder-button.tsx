@@ -3,45 +3,74 @@
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { createClient, LiveTranscriptionEvent } from "@deepgram/sdk"
 
 interface Props {
-  onRecording: (stream: MediaStream | null) => void;
+    onTranscription: (text: string) => void;
 }
 
-export function AudioRecorderButton({ onRecording }: Props) {
+export function AudioRecorderButton({ onTranscription }: Props) {
     const [recording, setRecording] = useState(false);
-    const streamRef = useRef<MediaStream | null>(null);
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    let chunks: Blob[] = [];
     
-    const startAudio = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
-            setRecording(true);
-        } catch (err) {
-            console.error("Speech capture error occured:", err);
-        }
-    };
-
-    const stopAudio = () => {
-        streamRef.current?.getTracks().forEach((track) => track.stop());
-        onRecording(streamRef.current)
-        setRecording(false)
-    };
-
     useEffect(() => {
-        return () => {
-            stopAudio();
-        };
+        if (typeof window === "undefined") return;
+
+        // Request microphone access and set up MediaRecorder
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then((stream) => {
+            const recorder = new MediaRecorder(stream);
+    
+            recorder.onstart = () => (chunks = []);
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            recorder.onstop = () => handleRecordingStop();
+    
+            setMediaRecorder(recorder);
+          })
+          .catch((err) => console.error("Error accessing microphone:", err));
     }, []);
 
+    const handleRecordingStop = async () => {
+        const audioBlob = new Blob(chunks, { type: "audio/webm" });
+    
+        // Prepare FormData with the recorded audio
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.webm");
+    
+        try {
+          const response = await fetch("/api/transcribe", {
+            method: "POST",
+            body: formData,
+          });
+    
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+    
+          const data = await response.json();
+          onTranscription(data.result)
+        } catch (error) {
+          console.error("Error during transcription:", error);
+          alert("Failed to transcribe audio. Please try again.");
+        }
+      };
+    
+      const toggleRecording = () => {
+        if (!mediaRecorder) return;
+        if (recording) {
+          mediaRecorder.stop();
+        } else {
+          mediaRecorder.start();
+        }
+        setRecording(!recording);
+      };
 
     return (
         <Button
             variant="ghost"
             size="icon"
             className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full w-10 h-10"
-            onClick={recording ? stopAudio : startAudio}
+            onClick={toggleRecording}
             >
             <Mic className="w-5 h-5" />
         </Button>
