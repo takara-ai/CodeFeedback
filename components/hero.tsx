@@ -207,8 +207,7 @@ Each step should build on the previous one. Focus on practical, hands-on Python 
           }`}
         >
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            <i>"The Hottest New Programming Language is English"</i> -- Andrej
-            Kaparthy
+            <i>"The Hottest New Programming Language is English"</i> -- Andrej Kaparthy
           </p>
         </div>
 
