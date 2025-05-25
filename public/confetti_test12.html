@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Confettis corrigé</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      background-color: #fefafa;
+    }
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      pointer-events: none;
+      will-change: transform;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+(function () {
+  const colors = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#e67e22', '#1abc9c', '#e84393'];
+  const confettiCount = 100;
+  const confettis = [];
+
+  const zoneTop = window.innerHeight / 2;
+  const zoneBottom = window.innerHeight;
+
+  class Confetti {
+    constructor() {
+      this.el = document.createElement('div');
+      this.el.className = 'confetti';
+      document.body.appendChild(this.el);
+      this.reset();
+    }
+
+    reset() {
+      this.x = Math.random() * window.innerWidth;
+      this.y = zoneBottom + Math.random() * 50;
+      this.size = 7 + Math.random() * 8;
+      this.speedY = 1 + Math.random() * 3;
+      this.speedX = (Math.random() - 0.5) * 1.5;
+      this.rotation = Math.random() * 360;
+      this.rotationSpeed = (Math.random() - 0.5) * 10;
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+
+      this.el.style.width = this.size + 'px';
+      this.el.style.height = this.size + 'px';
+      this.el.style.backgroundColor = this.color;
+    }
+
+    update() {
+      this.y -= this.speedY;
+      this.x += this.speedX;
+      this.rotation += this.rotationSpeed;
+
+      if (this.y + this.size < zoneTop) {
+        this.reset();
+      }
+
+      if (this.x > window.innerWidth) this.x = 0;
+      if (this.x < 0) this.x = window.innerWidth;
+
+      this.el.style.transform = `translate(${this.x}px, ${this.y}px) rotate(${this.rotation}deg)`;
+    }
+  }
+
+  function init() {
+    for (let i = 0; i < confettiCount; i++) {
+      confettis.push(new Confetti());
+    }
+    animate();
+  }
+
+  function animate() {
+    confettis.forEach(c => c.update());
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener('resize', () => {
+    confettis.forEach(c => {
+      c.x = Math.random() * window.innerWidth;
+      c.y = zoneBottom + Math.random() * 50;
+    });
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>
