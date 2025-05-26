@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Use the JSON-enforced completion without streaming
     const response = await client.agents.complete({
-      agentId: "ag:e30aa3a7:20250524:code-feedback:78ecd4aa",
+      agentId: "ag:f4b0b2d8:20250526:ultimate-viber:18efadc0",
       messages: messages,
       responseFormat: { type: "json_object" },
     });
