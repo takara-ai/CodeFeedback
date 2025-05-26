@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           const response = await client.agents.stream({
-            agentId: "ag:e30aa3a7:20250524:code-feedback:78ecd4aa",
+            agentId: "ag:f4b0b2d8:20250526:ultimate-viber:18efadc0",
             messages: messages,
           });
 
