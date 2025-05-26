@@ -106,17 +106,17 @@ print(calculate())`,
     <section className="py-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-900 min-h-screen">
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 mt-20">
           <h1 className="text-4xl font-bold mb-2">
             Learn Your
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               {" "}
-              Language{" "}
+              Language,{" "}
             </span>
             Not Code
           </h1>
           <p className="text-lg text-muted-foreground">
-            The Hottest New Programming Language is English
+            <i>"The Hottest New Programming Language is English"</i> -- Andrej Kaparthy
           </p>
         </div>
 
