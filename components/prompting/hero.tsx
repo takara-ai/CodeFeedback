@@ -11,6 +11,7 @@ export function Hero() {
   const [originalBadPrompt, setOriginalBadPrompt] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   const badPrompts = [
     "make chat app",
@@ -116,21 +117,20 @@ print(calculate())`,
             Not Code
           </h1>
           <p className="text-lg text-muted-foreground">
-            <i>"The Hottest New Programming Language is English"</i> -- Andrej Kaparthy
+            <i>"The Hottest New Programming Language is English"</i> -- Andrej
+            Kaparthy
           </p>
         </div>
 
         {/* Challenge button above search */}
         <div className="mt-16 mb-4 text-center">
-          <Link
-            href="/compare-game"
-          >
-            <Button 
+          <Link href="/compare-game">
+            <Button
               variant="ghost"
               className="text-gray-400 hover:text-gray-900 flex items-center gap-2 mx-auto"
             >
-            <Book className="w-4 h-4" />
-            Challenges
+              <Book className="w-4 h-4" />
+              Challenges
             </Button>
           </Link>
         </div>
@@ -183,7 +183,9 @@ print(calculate())`,
               <Button
                 asChild
                 disabled={
-                  !userPrompt.trim() || userPrompt === originalBadPrompt
+                  !userPrompt.trim() ||
+                  userPrompt === originalBadPrompt ||
+                  isGenerating
                 }
                 size="sm"
                 className="flex-1"
