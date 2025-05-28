@@ -35,6 +35,7 @@ function PromptLab() {
   const [loading, setLoading] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
@@ -44,9 +45,38 @@ function PromptLab() {
     const userPrompt = searchParams.get("userPrompt");
 
     if (originalPrompt && originalCode && userPrompt) {
-      runAnalysis(originalPrompt, originalCode, userPrompt);
+      // Create a secure session before running analysis
+      createGameSession(originalPrompt, userPrompt).then(() => {
+        runAnalysis(originalPrompt, originalCode, userPrompt);
+      });
     }
   }, [searchParams]);
+
+  const createGameSession = async (
+    originalPrompt: string,
+    userPrompt: string
+  ) => {
+    try {
+      const response = await fetch("/api/leaderboard", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gameType: "prompt-improvement",
+          originalPrompt,
+          userPrompt,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.sessionToken) {
+        setSessionToken(data.sessionToken);
+      } else {
+        console.error("Failed to create game session");
+      }
+    } catch (error) {
+      console.error("Error creating game session:", error);
+    }
+  };
 
   const runAnalysis = async (
     originalPrompt: string,
@@ -94,7 +124,14 @@ function PromptLab() {
   };
 
   const submitToLeaderboard = async (name: string) => {
-    if (!result) return;
+    if (!result || !sessionToken) {
+      toast({
+        title: "Submission Failed",
+        description: "No valid game session. Please restart the game.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmittingScore(true);
     try {
@@ -104,10 +141,24 @@ function PromptLab() {
         body: JSON.stringify({
           name,
           score: result.score,
+          sessionToken,
+          gameData: {
+            originalPrompt: result.originalPrompt,
+            improvedPrompt: result.improvedPrompt,
+            scoreBreakdown: {
+              before: result.before,
+              after: result.after,
+            },
+          },
         }),
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Submission failed");
+      }
+
       if (data.success) {
         setShowNameModal(false);
         // Show success message with score information
@@ -122,13 +173,18 @@ function PromptLab() {
             description: `Your score: ${data.newScore}% - Keep playing to accumulate more points!`,
           });
         }
+
+        // Clear session token after successful submission
+        setSessionToken(null);
       }
     } catch (error) {
       console.error("Error submitting to leaderboard:", error);
       toast({
         title: "Submission Failed",
         description:
-          "There was an error submitting your score. Please try again.",
+          error instanceof Error
+            ? error.message
+            : "There was an error submitting your score. Please try again.",
         variant: "destructive",
       });
     } finally {
